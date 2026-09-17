@@ -54,3 +54,7 @@ Run `.venv/bin/python -m unittest discover -s tests`. Tests cover real classical
 ### Annotation workspace
 
 Choose **2D + 3D**, **2D only**, or **3D only** above the canvas. Labels stay at the top of the sidebar, the mark list scrolls independently, and Save stays visible. Search marks by label; use Show to select a mark and Rename to change its label. Neurite controls appear when tracing is active. Unfinished drawings have explicit Finish/Discard controls and block tool/view switching; Undo removes a draft vertex. Export, import, and annotator settings are grouped below Save.
+
+### Channel colors
+
+The **Channels** menu offers selected-channel color, grayscale, or an additive combined-channel view in 2D and sampled 3D. Each channel has an editable color and composite visibility toggle, saved per dataset in this browser. The active channel always remains visible and is the only channel used for processing, annotation, and 3D picking. iMOP defaults to green/blue; unnamed channels use display defaults, not inferred stain identities or recovered acquisition lookup tables. Coloring does not change source pixel values or exported scientific data.
