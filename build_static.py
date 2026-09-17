@@ -1,5 +1,5 @@
 from pathlib import Path
-import shutil,json
+import shutil,json,hashlib,re
 root=Path(__file__).parent;demo=root/'demo';demo.mkdir(exist_ok=True)
 for file in (root/'app/web').glob('*'):shutil.copy2(file,demo/file.name)
 text=(demo/'index.html').read_text().replace('href="/','href="./').replace('src="/','src="./').replace('<script src="./app.js">','<script src="./runtime.js"></script><script src="./app.js">')
@@ -12,3 +12,9 @@ with (demo/'studio.css').open('a') as f:f.write('\n#boot{position:fixed;inset:0;
 
 manifest=[json.loads(p.read_text()) for p in (root/"starter").glob("*.json") if p.name!="manifest.json"]
 (demo/"starter/manifest.json").write_text(json.dumps(manifest,indent=2))
+
+# Keep the UI, worker and Python engine on the same published revision.
+assets=sorted((root/'app/web').glob('*'))+sorted((demo/'python').glob('*.py'))+[demo/'runtime.js',demo/'worker.js']
+revision=hashlib.sha256(b''.join(p.read_bytes() for p in assets)).hexdigest()[:12]
+index=demo/'index.html'
+index.write_text(re.sub(r'((?:src|href)="\./[^"?]+\.(?:js|css))"',lambda m:m[1]+'?v='+revision+'"',index.read_text()))

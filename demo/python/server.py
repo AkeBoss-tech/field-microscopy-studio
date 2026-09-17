@@ -110,18 +110,20 @@ def run_job(jid,params):
   if factor not in [1,2,4]:raise ValueError('XY reduction must be 1, 2 or 4')
   mode=params.get('scope','volume');z=int(number(params.get('z',0),0,d['shape'][0]-1))
   if mode not in ['volume','projection','slice']:raise ValueError('Invalid processing scope')
+  sample_count=(d['shape'][0] if mode=='volume' else 1)*(d['shape'][2]//factor)*(d['shape'][3]//factor)
+  if sample_count>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the processing limit')
   parent=params.get('parent') or None
   if parent:
    old,_=getrun(parent)
    if old['dataset']!=key or old['scope']!='volume' or old['factor']!=factor:raise ValueError('Parent must be a volume run on the same image and XY reduction')
    a=run_array(parent,'processed').copy();ch=old['channel']
   else:
-   a=volume(key)[:,ch].astype(np.float32)
+   a=volume(key)[z:z+1,ch].astype(np.float32) if mode=='slice' else volume(key)[:,ch].astype(np.float32)
    if factor>1:
     if a.shape[1]%factor or a.shape[2]%factor:raise ValueError('Image extent not divisible by reduction')
     a=block_reduce(a,(1,factor,factor),np.mean).astype(np.float32)
   if mode=='projection':a=a.max(axis=0,keepdims=True)
-  if mode=='slice':a=a[z:z+1]
+  if mode=='slice' and parent:a=a[z:z+1]
   if a.size>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the browser processing limit')
   sigma=number(params.get('sigma',0),0,5);background=number(params.get('background',0),0,64)
   job['message']='Preprocessing'
@@ -136,7 +138,9 @@ def run_job(jid,params):
   if method!='preprocess':
    job['message']='Running '+method
    x=a if a.shape[0]>1 else a[0]
-   score=sato(x,sigmas=[1,2],black_ridges=False) if method=='sato' else x
+   sato_mode=params.get('sato_mode','volume')
+   if method=='sato' and sato_mode not in ['slice','volume']:raise ValueError('Invalid Sato dimensional mode')
+   score=(np.stack([sato(plane,sigmas=[1,2],black_ridges=False) for plane in x]) if x.ndim==3 and sato_mode=='slice' else sato(x,sigmas=[1,2],black_ridges=False)) if method=='sato' else x
    threshold=float(threshold_otsu(score))*number(params.get('threshold',1),.1,4)
    mask=score>threshold
    mask=remove_small_objects(mask,min_size=int(number(params.get('min_size',30),1,1000000)))
@@ -153,6 +157,7 @@ def run_job(jid,params):
   folder=STORE/'runs'/jid;folder.mkdir(parents=True,exist_ok=False)
   spacing=[d['spacing'][0]*factor,d['spacing'][1]*factor,d['spacing'][2]]
   tifffile.imwrite(folder/'processed.tif',a.astype(np.float32),ome=True,metadata=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2],'PhysicalSizeXUnit':'µm','PhysicalSizeYUnit':'µm','PhysicalSizeZUnit':'µm'} if d.get('calibrated',True) else {'axes':'ZYX'}))
+  if method=='sato':tifffile.imwrite(folder/'ridge-response.tif',np.asarray(score if score.ndim==3 else score[None],np.float32),ome=True,metadata=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2],'PhysicalSizeXUnit':'µm','PhysicalSizeYUnit':'µm','PhysicalSizeZUnit':'µm'} if d.get('calibrated',True) else {'axes':'ZYX'}))
   tifffile.imwrite(folder/'labels.tif',labels,ome=True,metadata=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2]} if d.get('calibrated',True) else {'axes':'ZYX'}))
   rows=[]
   if count:
@@ -160,7 +165,7 @@ def run_job(jid,params):
    for i,(zz,yy,xx) in zip(ids,centers):rows.append(dict(id=int(i),voxels=int(sizes[i]),x=xx*factor+(factor-1)/2,y=yy*factor+(factor-1)/2,z=(zz if mode=='volume' else z if mode=='slice' else None),status='candidate'))
   with (folder/'objects.csv').open('w') as f:
    writer=csv.DictWriter(f,fieldnames=['id','voxels','x','y','z','status']);writer.writeheader();writer.writerows(rows)
-  result=dict(id=jid,title=str(params.get('recipe_name') or method)[:100],dataset=key,source=DATA[key]['path'],sha256=checksum(key),created=time.time(),parameters=params,parent=parent,channel=ch,factor=factor,scope=mode,z=z,method=method,spacing=spacing,shape=list(a.shape),objects=count,threshold=threshold,seconds=round(time.time()-job['created'],2),meaning='Connected network components, not neurons' if method=='sato' else 'Candidate regions, not reviewed cells',calibrated=d.get('calibrated',True),source_shape=d['shape'],transform={'scale':[factor,factor,1],'xy_translation':[(factor-1)/2]*2},software={'numpy':np.__version__,'tifffile':tifffile.__version__})
+  result=dict(id=jid,title=str(params.get('recipe_name') or method)[:100],dataset=key,source=DATA[key]['path'],sha256=checksum(key),created=time.time(),parameters=params,parent=parent,channel=ch,factor=factor,scope=mode,z=z,method=method,ridge_response=method=='sato',sato_mode=params.get('sato_mode','volume') if method=='sato' else None,spacing=spacing,shape=list(a.shape),objects=count,threshold=threshold,seconds=round(time.time()-job['created'],2),meaning='Connected network components, not neurons' if method=='sato' else 'Candidate regions, not reviewed cells',calibrated=d.get('calibrated',True),source_shape=d['shape'],transform={'scale':[factor,factor,1],'xy_translation':[(factor-1)/2]*2},software={'numpy':np.__version__,'tifffile':tifffile.__version__})
   atomic(folder/'run.json',result);persist(STORE,[folder]);job.update(status='completed',message='Saved result',result=result)
  except Exception as e:job.update(status='failed',error=str(e));traceback.print_exc()
 
@@ -274,7 +279,7 @@ class Handler(BaseHTTPRequestHandler):
   try:
    if not self.valid_host():raise ValueError('Invalid host')
    parsed=urlparse(self.path);path=parsed.path;q={k:v[0] for k,v in parse_qs(parsed.query).items()}
-   if path=='/api/config':return self.send(dict(shared=bool(os.environ.get('STUDIO_DEMO')),persistent=bool(STATE_REPO),storage='HF dataset' if STATE_REPO else 'local disk',upload_limit_mb=int(os.environ.get('STUDIO_UPLOAD_MB','1024'))))
+   if path=='/api/config':return self.send(dict(shared=bool(os.environ.get('STUDIO_DEMO')),persistent=bool(STATE_REPO),storage='HF dataset' if STATE_REPO else 'local disk',process_limit=int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')),upload_limit_mb=int(os.environ.get('STUDIO_UPLOAD_MB','1024'))))
    if path=='/api/recipes':return self.send([json.loads(p.read_text()) for p in (STORE/'recipes').glob('*.json')])
    if path=='/api/datasets':return self.send([dict(id=d['id'],name=d['name']) for d in DATA.values()])
    if path=='/api/dataset':return self.send(metadata(q['id']))

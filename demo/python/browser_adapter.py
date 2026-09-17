@@ -15,7 +15,7 @@ def request(path,method,body):
     h.headers={'Host':'127.0.0.1:8777','X-Studio-Request':'1','Content-Length':str(len(raw))}
     h.rfile=io.BytesIO(raw)
     if path=='/api/config':
-        h.send(dict(shared=False,browser=True,persistent=True,storage='this browser',upload_limit_mb=100))
+        h.send(dict(shared=False,browser=True,persistent=True,storage='this browser',upload_limit_mb=100,process_limit=8000000))
     elif path=='/api/workspace-export':
         buf=io.BytesIO()
         with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as archive:

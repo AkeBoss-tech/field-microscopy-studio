@@ -38,6 +38,31 @@ class StudioChecks(unittest.TestCase):
   roi=s.roifile.roiread(folder/'RoiSet.zip')[0]
   self.assertEqual(roi.roitype,s.roifile.ROI_TYPE.POLYLINE)
   self.assertEqual(len(roi.coordinates()),3)
+ def test_slice_processing_and_ridge_response(self):
+  import numpy as np
+  params=dict(dataset='demo-neurites',channel=0,scope='slice',z=5,factor=1,method='preprocess')
+  s.JOBS['slice-qa']={'created':s.time.time()};s.run_job('slice-qa',params)
+  self.assertEqual(s.JOBS['slice-qa']['status'],'completed')
+  actual=s.tifffile.imread(s.STORE/'runs/slice-qa/processed.tif')
+  np.testing.assert_array_equal(actual.squeeze(),s.volume('demo-neurites')[5,0])
+  s.JOBS['ridge-qa']={'created':s.time.time()};s.run_job('ridge-qa',{**params,'method':'sato'})
+  self.assertEqual(s.JOBS['ridge-qa']['status'],'completed')
+  score=s.tifffile.imread(s.STORE/'runs/ridge-qa/ridge-response.tif')
+  self.assertGreater(float(score.max()),0);self.assertFalse(np.array_equal(score,actual))
+ def test_limit_rejects_before_loading_pixels(self):
+  from unittest.mock import patch
+  with patch.dict(os.environ,{'STUDIO_PROCESS_VOXELS':'1'}),patch.object(s,'volume',side_effect=AssertionError('must not load')):
+   s.JOBS['limit-qa']={'created':s.time.time()};s.run_job('limit-qa',dict(dataset='demo-cells',method='otsu'))
+  self.assertEqual(s.JOBS['limit-qa']['status'],'failed')
+  self.assertIn('processing limit',s.JOBS['limit-qa']['error'])
+ def test_sato_per_slice_response(self):
+  import numpy as np
+  params=dict(dataset='demo-neurites',channel=0,scope='volume',factor=2,method='sato',sato_mode='slice')
+  s.JOBS['sato-slice-mode']={'created':s.time.time()};s.run_job('sato-slice-mode',params)
+  self.assertEqual(s.JOBS['sato-slice-mode']['status'],'completed')
+  folder=s.STORE/'runs/sato-slice-mode'
+  image=s.tifffile.imread(folder/'processed.tif');score=s.tifffile.imread(folder/'ridge-response.tif')
+  np.testing.assert_allclose(score[4],s.sato(image[4],sigmas=[1,2],black_ridges=False))
  def test_planar_roi(self):
   item=dict(id='point',type='point',domain='slice',channel=1,z=3,points=[[11.25,20.5]],status='accepted')
   doc=s.save_annotations(dict(dataset='demo-neurites',author='QA',items=[item],base_revision=s.annotation_current('demo-neurites')['revision']))
