@@ -50,3 +50,7 @@ Controls: drag to pan (orbit in 3D), wheel/pinch to zoom, Shift+wheel for Z, Spa
 ## Verification
 
 Run `.venv/bin/python -m unittest discover -s tests`. Tests cover real classical processing, 2D ImageJ export, 3D trace lengths, invalid depth rejection, and mirror-save rollback. UI verification is separate.
+
+### Annotation workspace
+
+Choose **2D + 3D**, **2D only**, or **3D only** above the canvas. Labels stay at the top of the sidebar, the mark list scrolls independently, and Save stays visible. Search marks by label; use Show to select a mark and Rename to change its label. Neurite controls appear when tracing is active. Unfinished drawings have explicit Finish/Discard controls and block tool/view switching; Undo removes a draft vertex. Export, import, and annotator settings are grouped below Save.
