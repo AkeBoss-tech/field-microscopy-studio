@@ -1,0 +1,17 @@
+{
+  "id": "demo-neurites",
+  "name": "Synthetic \u00b7 neurite network",
+  "path": "starter/neurites.ome.tif",
+  "axes": "ZCYX",
+  "spacing": [
+    0.5,
+    0.5,
+    1.0
+  ],
+  "calibrated": true,
+  "channels": [
+    "Synthetic signal",
+    "Synthetic nuclei"
+  ],
+  "synthetic": true
+}

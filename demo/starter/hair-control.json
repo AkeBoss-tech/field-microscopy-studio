@@ -1,0 +1,30 @@
+{
+  "id": "hair-control",
+  "name": "Hair cells \u00b7 Control Mid-1 \u00b7 native 40Z",
+  "path": "starter/hair-control.ome.tif",
+  "axes": "ZCYX",
+  "shape": [
+    40,
+    4,
+    1024,
+    1024
+  ],
+  "dtype": "uint8",
+  "spacing": [
+    0.155981445,
+    0.155981445,
+    1
+  ],
+  "calibrated": true,
+  "channels": [
+    "Channel 1",
+    "Channel 2",
+    "Channel 3",
+    "Channel 4"
+  ],
+  "original_source": "Mid-1_x20x2.czi",
+  "original_sha256": "eca25859d99493c0b7796b1f1c4fdabfa10994ff83e60558791cd616dc821c74",
+  "sha256_packaged": "bb0a305e0527c01b24296942d25e4037765ec1b8d86fe150454587d9b6ce9cf3",
+  "pixel_transform": "Identity: all channels, full XY, all acquired Z planes; lossless TIFF container conversion only",
+  "synthetic": false
+}

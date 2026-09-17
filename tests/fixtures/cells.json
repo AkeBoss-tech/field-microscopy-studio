@@ -1,0 +1,17 @@
+{
+  "id": "demo-cells",
+  "name": "Synthetic \u00b7 cell bodies & nuclei",
+  "path": "starter/cells.ome.tif",
+  "axes": "ZCYX",
+  "spacing": [
+    0.5,
+    0.5,
+    1.0
+  ],
+  "calibrated": true,
+  "channels": [
+    "Synthetic signal",
+    "Synthetic nuclei"
+  ],
+  "synthetic": true
+}
