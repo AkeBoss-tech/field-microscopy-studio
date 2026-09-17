@@ -58,3 +58,5 @@ Choose **2D + 3D**, **2D only**, or **3D only** above the canvas. Labels stay at
 ### Channel colors
 
 The **Channels** menu offers selected-channel color, grayscale, or an additive combined-channel view in 2D and sampled 3D. Each channel has an editable color and composite visibility toggle, saved per dataset in this browser. The active channel always remains visible and is the only channel used for processing, annotation, and 3D picking. iMOP defaults to green/blue; unnamed channels use display defaults, not inferred stain identities or recovered acquisition lookup tables. Coloring does not change source pixel values or exported scientific data.
+
+Annotate opens in a focused 2D Point workspace. Use **Choose a tool / How to annotate** for count, neurite, and outline instructions. Shared accessible dialogs protect unfinished drawings during tool/view/tab/channel/Z changes, confirm deletion, and confirm reloading saved annotations. Escape closes dialogs without triggering canvas shortcuts.
