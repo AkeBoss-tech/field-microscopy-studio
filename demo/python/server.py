@@ -169,6 +169,8 @@ def validate_items(key,items):
   else:it['points']=[[number(x,0,w-1),number(y,0,h-1)] for x,y in pts]
   it['label']=str(it.get('label',''))[:100]
   if it.get('status') not in ['unreviewed','accepted','uncertain','rejected']:raise ValueError('Invalid review state')
+  from trace_links import validate_owner
+  validate_owner(key,it)
  return items
 
 def save_annotations(body):
@@ -194,11 +196,17 @@ def save_annotations(body):
    length=float(np.linalg.norm(np.diff(pts,axis=0),axis=1).sum()) if it['type']=='polyline' else ''
    area=float(abs(np.dot(pts[:,0],np.roll(pts[:,1],1))-np.dot(pts[:,1],np.roll(pts[:,0],1)))/2) if it['type']=='polygon' else ''
    rows.append(dict(id=i+1,type=it['type'],domain=it['domain'],channel=it['channel']+1,z=it['z']+1 if it['domain']=='slice' else '',status=it['status'],length_2d_um=length if d.get('calibrated',True) else '',area_2d_um2=area if d.get('calibrated',True) else '',note=it.get('note',''),label=it.get('label',''),length_3d_um=''))
+  for row,it in zip(rows,items):
+   owner=it.get('owner') or {}
+   row.update(owner_run_id=owner.get('run_id',''),owner_object_id=owner.get('object_id',''),
+              owner_channel_0based=owner.get('channel_0based',''),
+              owner_label_revision=owner.get('label_revision',''),
+              owner_assessment=owner.get('assessment',''))
   if rois:roifile.roiwrite(folder/'RoiSet.zip',rois,mode='w')
   else:
    with zipfile.ZipFile(folder/'RoiSet.zip','w'):pass
   with (folder/'measurements.csv').open('w') as f:
-   writer=csv.DictWriter(f,fieldnames=['id','type','domain','channel','z','status','length_2d_um','area_2d_um2','note','label','length_3d_um']);writer.writeheader();writer.writerows(rows)
+   writer=csv.DictWriter(f,fieldnames=['id','type','domain','channel','z','status','length_2d_um','area_2d_um2','note','label','length_3d_um','owner_run_id','owner_object_id','owner_channel_0based','owner_label_revision','owner_assessment']);writer.writeheader();writer.writerows(rows)
   with zipfile.ZipFile(folder/'annotation-package.zip','w',zipfile.ZIP_DEFLATED) as archive:
    for name in ['annotations.json','RoiSet.zip','measurements.csv']:archive.write(folder/name,name)
   # Mirror the immutable revision and latest pointer together, roll back pointer on failure.
@@ -263,14 +271,18 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/recipes':return self.send([json.loads(p.read_text()) for p in (STORE/'recipes').glob('*.json')])
    if path=='/api/datasets':return self.send([dict(id=d['id'],name=d['name']) for d in DATA.values()])
    if path=='/api/dataset':return self.send(metadata(q['id']))
-   if path in ['/api/measurements','/api/object-location','/api/measurements.csv','/api/count-summary.json']:
-    from measurements import table, locate, csv_export, summary_export
+   if path in ['/api/measurements','/api/object-location','/api/measurements.csv','/api/count-summary.json','/api/boxes.json']:
+    from measurements import table, locate, csv_export, summary_export, boxes_export
     if path=='/api/measurements.csv':return self.send(csv_export(q),ctype='text/csv; charset=utf-8')
     if path=='/api/count-summary.json':return self.send(summary_export(q),ctype='application/json')
+    if path=='/api/boxes.json':return self.send(boxes_export(q),ctype='application/json')
     return self.send(locate(q) if path=='/api/object-location' else table(q))
    if path=='/api/review':
     from review import inspect_volume
     return self.send(inspect_volume(q))
+   if path=='/api/owner-candidates':
+    from trace_links import nearby
+    return self.send(nearby(q))
    if path=='/api/image':return self.send(png_view(q),ctype='image/png')
    if path=='/api/probe':
     key=q['dataset'];d=metadata(key);x=int(number(q['x'],0,d['shape'][3]-1));y=int(number(q['y'],0,d['shape'][2]-1));z=int(number(q['z'],0,d['shape'][0]-1));ch=int(number(q['channel'],0,d['shape'][1]-1));a=volume(key)[:,ch,y,x];result=dict(intensity=float(a.max() if q.get('view')=='projection' else a[z]),objects=[])
@@ -355,6 +367,12 @@ class Handler(BaseHTTPRequestHandler):
     except Exception:
      DATA.pop(key,None);raise
     return self.send(d)
+   if urlparse(self.path).path=='/api/import-labels':
+    if size<=0 or size>int(os.environ.get('STUDIO_LABEL_MB','100'))*1048576:
+     raise ValueError('Instance TIFF exceeds the import size limit')
+    q={k:v[0] for k,v in parse_qs(urlparse(self.path).query).items()}
+    from external_results import import_labels
+    return self.send(import_labels(q,self.rfile.read(size)))
    if size>8_000_000:raise ValueError('Request too large')
    body=json.loads(self.rfile.read(size));path=urlparse(self.path).path
    if path=='/api/object-decision':

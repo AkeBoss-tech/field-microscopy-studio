@@ -200,7 +200,7 @@ def save(q):
         target.mkdir(exist_ok=True)
         image_path = target / (revision + '.tif')
         tmp = target / (revision + '.tmp.tif')
-        tifffile.imwrite(tmp, new, compression='zlib', metadata={'axes': 'ZYX'})
+        tifffile.imwrite(tmp, new, compression='zlib', photometric='minisblack', metadata={'axes': 'ZYX'})
         os.replace(tmp, image_path)
         digest = hashlib.sha256(image_path.read_bytes()).hexdigest()
         record = {'revision': revision, 'parent': snapshot['revision'], 'run': run['id'],

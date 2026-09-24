@@ -9,7 +9,7 @@ shutil.copytree(root/'examples'/'visual-point-examples',demo/'examples'/'visual-
 shutil.copytree(root/'examples'/'synthetic-v2',demo/'examples'/'synthetic-v2',dirs_exist_ok=True)
 shutil.copytree(root/'examples'/'synthetic-v3',demo/'examples'/'synthetic-v3',dirs_exist_ok=True)
 (demo/'python').mkdir(exist_ok=True)
-for name in ['server.py','catalog.py','persistence.py','review.py','processing.py','experiments.py','measurements.py','corrections.py']:shutil.copy2(root/'app'/name,demo/'python'/name)
+for name in ['server.py','catalog.py','persistence.py','review.py','processing.py','experiments.py','measurements.py','corrections.py','external_results.py','trace_links.py']:shutil.copy2(root/'app'/name,demo/'python'/name)
 shutil.copy2(root/'browser_adapter.py',demo/'python/browser_adapter.py')
 with (demo/'studio.css').open('a') as f:f.write('\n#boot{position:fixed;inset:0;z-index:1000;background:radial-gradient(ellipse at 50% 30%,#243b36,#11171e 65%);display:grid;place-items:center;text-align:center}#boot h1{font-weight:400;font-size:32px;letter-spacing:-.04em}#boot p{color:#a8c0ba;line-height:1.8;font-size:13px}.boot-mark{font-size:60px;color:#9cdcc1}header{flex-wrap:wrap;height:auto;min-height:68px}header button{font-size:10px}\n')
 

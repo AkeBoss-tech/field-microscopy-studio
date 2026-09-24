@@ -57,7 +57,7 @@ def score(manifest_path: Path) -> dict:
             raise ValueError(f'{identifier}: provide adjudicated expert truth and reviewer provenance')
         run = json.loads(_path(manifest_path, field['run_json']).read_text())
         summary = json.loads(_path(manifest_path, field['count_summary_json']).read_text())
-        if run.get('method') not in ('otsu', 'watershed') or run.get('scope') != 'volume':
+        if run.get('method') not in ('otsu', 'watershed', 'external') or run.get('scope') != 'volume':
             raise ValueError(f'{identifier}: only registered body/nucleus volume runs can be scored')
         if not summary.get('count', {}).get('ready'):
             raise ValueError(f'{identifier}: complete the reviewed count before scoring')

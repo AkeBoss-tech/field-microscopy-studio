@@ -17,6 +17,8 @@ Choose a real starter scan or upload a TIFF/CZI (100 MB in the cloud demo). Expl
 
 The starter scans are the user-authorized real iMOP neuron TIFF (14 Z, 2 channels, 1024²) and Set1 Control Mid-1 hair-cell CZI (40 Z, 4 channels, 1024²). They were losslessly repackaged as compressed OME-TIFF; pixel equality was checked after rereading both exports. All channels and acquired planes are retained, with original calibration and source hashes in `starter/*.json`. Only the selected volume is downloaded. Hair-cell channels remain numbered because biological channel labels require confirmation. These images and candidate outputs do not establish biological accuracy. `generate_starters.py` is retained for synthetic test fixtures, not the public starter list. Model outputs are candidate regions, not identified cells. Sato components do not establish neuron ownership. 3D is a sampled point preview, not surface segmentation or ray-cast rendering.
 
+Bring your own model output through **Import masks** (full-stack instance TIFF), review its calibrated 3D boxes, and tag 3D neurite traces to candidate cells across channels. The [external algorithm and 3D workflow](docs/external-algorithms-and-3d.md) specifies the file contract and scientific limits. The [scaled two-modality benchmark](docs/scaled-modalities.md) records native/2×/4× synthetic checks against both starter scan intensity styles.
+
 ## Free browser demo
 
 Hugging Face rejected a free Docker Space on this account with HTTP 402: Docker/Gradio CPU hosting requires PRO. Static hosting is free. This demo therefore uses Pyodide 0.28.3 with real NumPy/SciPy/scikit-image processing in a worker; first startup downloads the scientific runtime.

@@ -68,7 +68,7 @@ def count_summary(run, rows, protocol):
     policy = protocol.get('edge_policy', '')
     included = [o for o in rows if policy != 'exclude' or not o['boundary_faces']]
     statuses = {name: sum(o['status'] == name for o in included) for name in STATUSES}
-    ready = bool(protocol.get('revision') and run['method'] in ('otsu', 'watershed')
+    ready = bool(protocol.get('revision') and run['method'] in ('otsu', 'watershed', 'external')
                  and not statuses['unreviewed'] and not statuses['needs_review'])
     return dict(ready=ready, accepted_so_far=statuses['accepted'],
                 reviewed_count=statuses['accepted'] if ready else None,
@@ -83,8 +83,8 @@ def count_summary(run, rows, protocol):
 def save_protocol(q):
     import server as s
     run, folder, _ = context(q)
-    if run['method'] not in ('otsu', 'watershed'):
-        raise ValueError('A body or nucleus count requires Otsu or watershed candidates')
+    if run['method'] not in ('otsu', 'watershed', 'external'):
+        raise ValueError('A body or nucleus count requires instance candidates')
     target = str(q.get('target', '')).strip()
     role = str(q.get('channel_role', '')).strip()
     note = str(q.get('reviewer_note', '')).strip()
@@ -292,3 +292,33 @@ def summary_export(q):
                   review_revision=snapshot['revision'], count_protocol=protocol,
                   count=count, interpretation='Reviewer-assessed candidate count; not independent biological ground truth')
     return json.dumps(result, indent=2).encode()
+
+
+def boxes_export(q):
+    """Revision-pinned 3D boxes in native pixels and, when known, micrometers."""
+    import server as s
+    r, review, correction, protocol, count, _, _, rows = query_rows(q)
+    _pinned(q, review, correction, protocol)
+    mapping = {}
+    if r['method'] == 'external':
+        _, folder = s.getrun(r['id'])
+        mapping = json.loads((folder / 'original-ids.json').read_text())
+    d = s.metadata(r['dataset'])
+    spacing = d['spacing']
+    boxes = []
+    for row in rows:
+        bounds = row['bounds_native']
+        boxes.append(dict(object_id=row['id'], submitted_object_id=mapping.get(str(row['id'])),
+                          status=row['status'], voxels=row['voxels'],
+                          bounds_xyz_end_exclusive=bounds,
+                          bounds_um_xyz_end_exclusive=[
+                              [bounds[side][axis] * spacing[axis] for axis in range(3)]
+                              for side in range(2)] if d.get('calibrated', False) else None,
+                          boundary_faces=row['boundary_faces']))
+    return json.dumps(dict(dataset=r['dataset'], source_sha256=r.get('sha256'),
+                           run_id=r['id'], method=r['method'], channel_0based=r['channel'],
+                           target=protocol.get('target') or r.get('target', ''),
+                           label_revision=correction['revision'], review_revision=review['revision'],
+                           protocol_revision=protocol['revision'], count_ready=count['ready'],
+                           coordinate_system='native XYZ pixels; zero-based, end-exclusive bounds',
+                           boxes=boxes), indent=2).encode()
