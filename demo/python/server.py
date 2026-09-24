@@ -1,5 +1,7 @@
 from __future__ import annotations
-import base64, csv, hashlib, io, json, os, threading, time, traceback, uuid, zipfile
+import base64, csv, hashlib, io, json, os, sys, threading, time, traceback, uuid, zipfile
+# Review helpers must share this process's dataset registry when launched as a script.
+if __name__ == "__main__": sys.modules["server"] = sys.modules[__name__]
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -84,6 +86,7 @@ def getrun(run):
  return json.loads(p.read_text()),p.parent
 @lru_cache(maxsize=4)
 def run_array(run,kind):
+ if kind not in ['processed','labels','ridge-response']:raise ValueError('Unknown result layer')
  r,p=getrun(run)
  if r.get('historical'):
   if kind=='processed':raise ValueError('Earlier run has labels only; select raw image with overlay')
@@ -94,6 +97,7 @@ def array_for(key,ch,run=None,kind='processed'):
  if run:
   r,_=getrun(run)
   if r['dataset']!=key:raise ValueError('Run belongs to a different dataset')
+  if r['channel']!=ch:raise ValueError('Run belongs to a different channel')
   return run_array(run,kind),r
  return volume(key)[:,ch],None
 
@@ -115,7 +119,7 @@ def run_job(jid,params):
   parent=params.get('parent') or None
   if parent:
    old,_=getrun(parent)
-   if old['dataset']!=key or old['scope']!='volume' or old['factor']!=factor:raise ValueError('Parent must be a volume run on the same image and XY reduction')
+   if old['dataset']!=key or old['scope']!='volume' or old['factor']!=factor or old['channel']!=ch or old.get('historical'):raise ValueError('Parent must be a current volume run on the same image, channel and XY reduction')
    a=run_array(parent,'processed').copy();ch=old['channel']
   else:
    a=volume(key)[z:z+1,ch].astype(np.float32) if mode=='slice' else volume(key)[:,ch].astype(np.float32)
@@ -125,34 +129,10 @@ def run_job(jid,params):
   if mode=='projection':a=a.max(axis=0,keepdims=True)
   if mode=='slice' and parent:a=a[z:z+1]
   if a.size>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the browser processing limit')
-  sigma=number(params.get('sigma',0),0,5);background=number(params.get('background',0),0,64)
-  job['message']='Preprocessing'
-  if sigma:a=ndi.gaussian_filter(a,(0,sigma,sigma))
-  if background:a=np.maximum(a-ndi.gaussian_filter(a,(0,background,background)),0)
-  if params.get('normalize',False):
-   low,high=np.percentile(a,[1,99.5]);a=np.clip((a-low)/max(high-low,1e-12),0,1)
-  if job.get('cancel'):job.update(status='canceled');return
-  method=params.get('method','otsu')
-  if method not in ['preprocess','otsu','watershed','sato']:raise ValueError('Unknown algorithm')
-  labels=np.zeros(a.shape,np.uint32);count=0;threshold=None
-  if method!='preprocess':
-   job['message']='Running '+method
-   x=a if a.shape[0]>1 else a[0]
-   sato_mode=params.get('sato_mode','volume')
-   if method=='sato' and sato_mode not in ['slice','volume']:raise ValueError('Invalid Sato dimensional mode')
-   score=(np.stack([sato(plane,sigmas=[1,2],black_ridges=False) for plane in x]) if x.ndim==3 and sato_mode=='slice' else sato(x,sigmas=[1,2],black_ridges=False)) if method=='sato' else x
-   threshold=float(threshold_otsu(score))*number(params.get('threshold',1),.1,4)
-   mask=score>threshold
-   mask=remove_small_objects(mask,min_size=int(number(params.get('min_size',30),1,1000000)))
-   if method=='watershed':
-    spacing=([d['spacing'][2],d['spacing'][1]*factor,d['spacing'][0]*factor] if x.ndim==3 else [d['spacing'][1]*factor,d['spacing'][0]*factor])
-    dist=ndi.distance_transform_edt(mask,sampling=spacing)
-    peaks=peak_local_max(dist,min_distance=int(number(params.get('distance',5),1,100)),labels=mask,exclude_border=False)
-    markers=np.zeros(mask.shape,np.int32);markers[tuple(peaks.T)]=np.arange(1,len(peaks)+1)
-    labels=watershed(-dist,markers,mask=mask).astype(np.uint32)
-   else:labels=ndi.label(mask)[0].astype(np.uint32)
-   if labels.ndim==2:labels=labels[None]
-   count=int(labels.max())
+  from processing import process
+  job['message']='Preprocessing and finding candidates'
+  a,labels,score,threshold,effective=process(a,params,d,factor,lambda:job.get('cancel'))
+  method=params.get('method','otsu');count=int(labels.max())
   if job.get('cancel'):job.update(status='canceled');return
   folder=STORE/'runs'/jid;folder.mkdir(parents=True,exist_ok=False)
   spacing=[d['spacing'][0]*factor,d['spacing'][1]*factor,d['spacing'][2]]
@@ -165,7 +145,7 @@ def run_job(jid,params):
    for i,(zz,yy,xx) in zip(ids,centers):rows.append(dict(id=int(i),voxels=int(sizes[i]),x=xx*factor+(factor-1)/2,y=yy*factor+(factor-1)/2,z=(zz if mode=='volume' else z if mode=='slice' else None),status='candidate'))
   with (folder/'objects.csv').open('w') as f:
    writer=csv.DictWriter(f,fieldnames=['id','voxels','x','y','z','status']);writer.writeheader();writer.writerows(rows)
-  result=dict(id=jid,title=str(params.get('recipe_name') or method)[:100],dataset=key,source=DATA[key]['path'],sha256=checksum(key),created=time.time(),parameters=params,parent=parent,channel=ch,factor=factor,scope=mode,z=z,method=method,ridge_response=method=='sato',sato_mode=params.get('sato_mode','volume') if method=='sato' else None,spacing=spacing,shape=list(a.shape),objects=count,threshold=threshold,seconds=round(time.time()-job['created'],2),meaning='Connected network components, not neurons' if method=='sato' else 'Candidate regions, not reviewed cells',calibrated=d.get('calibrated',True),source_shape=d['shape'],transform={'scale':[factor,factor,1],'xy_translation':[(factor-1)/2]*2},software={'numpy':np.__version__,'tifffile':tifffile.__version__})
+  result=dict(id=jid,title=str(params.get('recipe_name') or method)[:100],dataset=key,source=DATA[key]['path'],sha256=checksum(key),created=time.time(),parameters=params,effective_parameters=effective,parent=parent,channel=ch,factor=factor,scope=mode,z=z,method=method,ridge_response=method=='sato',sato_mode=params.get('sato_mode','volume') if method=='sato' else None,spacing=spacing,shape=list(a.shape),objects=count,threshold=threshold,seconds=round(time.time()-job['created'],2),meaning='Connected network components, not neurons' if method=='sato' else 'Candidate regions, not reviewed cells',calibrated=d.get('calibrated',True),source_shape=d['shape'],transform={'scale':[factor,factor,1],'xy_translation':[(factor-1)/2]*2},software={'numpy':np.__version__,'tifffile':tifffile.__version__})
   atomic(folder/'run.json',result);persist(STORE,[folder]);job.update(status='completed',message='Saved result',result=result)
  except Exception as e:job.update(status='failed',error=str(e));traceback.print_exc()
 
@@ -233,7 +213,7 @@ def save_annotations(body):
 
 def png_view(q):
  key=q['dataset'];d=metadata(key);ch=int(number(q.get('channel',0),0,d['shape'][1]-1));mode=q.get('view','slice');z=int(number(q.get('z',0),0,d['shape'][0]-1));run=q.get('run');overlay=q.get('overlay')
- a,r=array_for(key,ch,run)
+ a,r=array_for(key,ch,run,q.get('kind','processed'))
  if r and r['scope']=='slice' and (mode!='slice' or z!=r['z']):raise ValueError('This run only covers source plane '+str(r['z']+1))
  if r and r['scope']=='projection' and mode!='projection':raise ValueError('Projection-only run cannot be displayed on an acquired slice')
  plane=a.max(0) if mode=='projection' else a[z if not r or r['scope']=='volume' else 0]
@@ -255,12 +235,12 @@ def png_view(q):
  b=io.BytesIO();img.save(b,format='PNG');return b.getvalue()
 
 def points_view(q):
- key=q['dataset'];d=metadata(key);a,r=array_for(key,int(q.get('channel',0)),q.get('run'))
+ key=q['dataset'];d=metadata(key);a,r=array_for(key,int(q.get('channel',0)),q.get('run'),q.get('kind','processed'))
  if r and r['scope']!='volume':raise ValueError('3D requires a volume run')
  factor=r['factor'] if r else 1;stride=max(1,int(np.ceil(a.shape[1]/256)));b=a[:,::stride,::stride];lo,hi=np.percentile(b,[50,99.7]);coords=np.argwhere(b>lo+.2*(hi-lo));coords=coords[::max(1,int(np.ceil(len(coords)/50000)))];values=np.clip((b[tuple(coords.T)]-lo)/max(hi-lo,1e-9),0,1)
  points=[[float(x*stride*factor+(factor-1)/2),float(y*stride*factor+(factor-1)/2),int(z),round(float(v),3),0] for (z,y,x),v in zip(coords,values)]
  if q.get('overlay'):
-  mask,mr=array_for(key,0,q['overlay'],'labels')
+  mask,mr=array_for(key,int(q.get('channel',0)),q['overlay'],'labels')
   if mr['scope']!='volume':raise ValueError('3D overlays require volumetric labels')
   for pt in points:
    xx=min(mask.shape[2]-1,int(pt[0]/mr['factor']));yy=min(mask.shape[1]-1,int(pt[1]/mr['factor']));pt[4]=int(mask[pt[2],yy,xx])
@@ -283,6 +263,13 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/recipes':return self.send([json.loads(p.read_text()) for p in (STORE/'recipes').glob('*.json')])
    if path=='/api/datasets':return self.send([dict(id=d['id'],name=d['name']) for d in DATA.values()])
    if path=='/api/dataset':return self.send(metadata(q['id']))
+   if path in ['/api/measurements','/api/object-location','/api/measurements.csv']:
+    from measurements import table, locate, csv_export
+    if path=='/api/measurements.csv':return self.send(csv_export(q),ctype='text/csv; charset=utf-8')
+    return self.send(locate(q) if path=='/api/object-location' else table(q))
+   if path=='/api/review':
+    from review import inspect_volume
+    return self.send(inspect_volume(q))
    if path=='/api/image':return self.send(png_view(q),ctype='image/png')
    if path=='/api/probe':
     key=q['dataset'];d=metadata(key);x=int(number(q['x'],0,d['shape'][3]-1));y=int(number(q['y'],0,d['shape'][2]-1));z=int(number(q['z'],0,d['shape'][0]-1));ch=int(number(q['channel'],0,d['shape'][1]-1));a=volume(key)[:,ch,y,x];result=dict(intensity=float(a.max() if q.get('view')=='projection' else a[z]),objects=[])
@@ -314,6 +301,8 @@ class Handler(BaseHTTPRequestHandler):
     base=(STORE/q['path']).resolve()
     if not base.is_relative_to(STORE.resolve()) or not base.is_file():raise ValueError('Unknown artifact')
     return self.send(base.read_bytes(),ctype='application/octet-stream')
+   if path.count('/')==1 and path.endswith(('.js','.css')) and (WEB/path[1:]).is_file():
+    return self.send((WEB/path[1:]).read_bytes(),ctype='application/javascript' if path.endswith('.js') else 'text/css')
    files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/simple.js':'simple.js','/studio.js':'studio.js','/studio.css':'studio.css'}
    if path in files:return self.send((WEB/files[path]).read_bytes(),ctype={'/':'text/html','/app.js':'application/javascript','/style.css':'text/css','/simple.js':'application/javascript','/studio.js':'application/javascript','/studio.css':'text/css'}[path])
    self.send({'error':'Not found'},404)
@@ -358,6 +347,15 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(d)
    if size>8_000_000:raise ValueError('Request too large')
    body=json.loads(self.rfile.read(size));path=urlparse(self.path).path
+   if path=='/api/object-decision':
+    from measurements import save
+    return self.send(save(body))
+   if path=='/api/preview':
+    from experiments import preview
+    return self.send(preview(body))
+   if path=='/api/compare':
+    from experiments import compare
+    return self.send(compare(body))
    if path=='/api/recipes':
     name=str(body.get('name','')).strip()[:100]
     if not name:raise ValueError('Name your recipe')

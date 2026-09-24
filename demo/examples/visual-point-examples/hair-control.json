@@ -1,0 +1,46 @@
+{
+  "source": "starter/hair-control.ome.tif",
+  "source_sha256": "bb0a305e0527c01b24296942d25e4037765ec1b8d86fe150454587d9b6ce9cf3",
+  "source_axes": "ZCYX",
+  "source_shape_zcyx": [
+    40,
+    4,
+    1024,
+    1024
+  ],
+  "channel_zero_based": 0,
+  "z_zero_based": 29,
+  "crop_xyxy_native": [
+    160,
+    460,
+    390,
+    615
+  ],
+  "confidence_scope": "High visual confidence in a distinct bright focus at each point in this one acquired plane. No cell type, neuron identity, count completeness, or full boundary is asserted.",
+  "points": [
+    {
+      "index": 1,
+      "x": 190,
+      "y": 527,
+      "label": "Distinct Channel 1 apical bright cap (stain identity unconfirmed)"
+    },
+    {
+      "index": 2,
+      "x": 250,
+      "y": 527,
+      "label": "Distinct Channel 1 apical bright cap (stain identity unconfirmed)"
+    },
+    {
+      "index": 3,
+      "x": 307,
+      "y": 527,
+      "label": "Distinct Channel 1 apical bright cap (stain identity unconfirmed)"
+    },
+    {
+      "index": 4,
+      "x": 361,
+      "y": 527,
+      "label": "Distinct Channel 1 apical bright cap (stain identity unconfirmed)"
+    }
+  ]
+}

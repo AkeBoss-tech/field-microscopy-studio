@@ -1,0 +1,46 @@
+{
+  "source": "starter/imop.ome.tif",
+  "source_sha256": "d9ce47b364ae7359508e632db30a3ce7a04359e4c33d8bfb5466ae62780536ca",
+  "source_axes": "ZCYX",
+  "source_shape_zcyx": [
+    14,
+    2,
+    1024,
+    1024
+  ],
+  "channel_zero_based": 1,
+  "z_zero_based": 7,
+  "crop_xyxy_native": [
+    150,
+    270,
+    370,
+    455
+  ],
+  "confidence_scope": "High visual confidence in a distinct bright focus at each point in this one acquired plane. No cell type, neuron identity, count completeness, or full boundary is asserted.",
+  "points": [
+    {
+      "index": 1,
+      "x": 243,
+      "y": 314,
+      "label": "Distinct DAPI-channel bright focus (stain name presumed)"
+    },
+    {
+      "index": 2,
+      "x": 211,
+      "y": 368,
+      "label": "Distinct DAPI-channel bright focus (stain name presumed)"
+    },
+    {
+      "index": 3,
+      "x": 255,
+      "y": 411,
+      "label": "Distinct DAPI-channel bright focus (stain name presumed)"
+    },
+    {
+      "index": 4,
+      "x": 347,
+      "y": 363,
+      "label": "Distinct DAPI-channel bright focus (stain name presumed)"
+    }
+  ]
+}
