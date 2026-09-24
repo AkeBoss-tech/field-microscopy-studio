@@ -51,6 +51,7 @@ def package(suite: Path, out: Path) -> None:
         f"[Truth]({record['case']}/truth.json) | "
         f"[Masks]({record['case']}/body_instances.tif) |"
         for record in manifest["cases"])
+    count = len(manifest['cases'])
     (out / "README.md").write_text("""# Procedural 2D and 3D counting scenes
 
 Download an image TIFF and import it into FIELD with **Add image**. Each scene's
@@ -58,15 +59,18 @@ Download an image TIFF and import it into FIELD with **Add image**. Each scene's
 scenes also include per-owner neurite masks. Import the **image** TIFF as source,
 then choose a counting task, preview, run, and inspect candidates in Review.
 The simulated spacing is 1 µm XY and 2 µm Z; it is not a measured microscope
-calibration. `manifest.json` lists all six scenes, `scores.csv` summarizes the
+calibration. `manifest.json` lists all """ + str(count) + """ scenes, `scores.csv` summarizes the
 four runnable methods, and `tuning.json` records development and held-out seeds.
 
 | Scene | Dimensions | Bodies | Import TIFF | Centers and graph | Body masks |
 |---|---|---:|---|---|---|
 """ + links + """
 
-The source images are not copied into these scenes. All six files passed native
+The source images are not copied into these scenes. All """ + str(count) + """ files passed native
 import, preview, full-volume run, label export, and linked XY/XZ/YZ review.
+Empty controls test false positives; border controls test partial objects;
+the attenuation control reduces signal with depth. These are procedural
+stress tests, not measured microscope physics.
 The algorithms are **not** 100% accurate: even the tuned seed-17 touching 3D
 case gives 9 candidates for 8 true bodies. These examples check code paths and
 failure modes, not biological cell counts or neuron ownership in real scans.

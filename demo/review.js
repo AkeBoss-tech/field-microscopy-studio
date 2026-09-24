@@ -1,5 +1,5 @@
 'use strict';
-// Review is read-only. Annotation gestures and revisions stay in the Annotate workspace.
+// Review corrections create new label revisions; source pixels and original runs stay immutable.
 const reviewState={dataset:null,x:0,y:0,contrast:'auto',depthScale:1,zoom:1,data:null,images:null,host:null,timer:null,busy:false,pending:null,serial:0,signature:null};
 const intensityKinds=[['raw','Raw source'],['processed','Processed intensity'],['ridge-response','Ridge response']];
 const layerLabel=document.createElement('label');layerLabel.className='intensity-control';layerLabel.append(document.createTextNode('Image layer '));
@@ -61,7 +61,7 @@ function renderReviewWorkspace(){
    if(axis==='raw'||axis==='xy'){reviewState.x+=delta[0];reviewState.y+=delta[1]}else{if(axis==='xz')reviewState.x+=delta[0];else reviewState.y+=delta[0];state.z+=delta[1]}clampReviewCursor();scheduleReview();
   };
  }
- host.append(grid);const note=document.createElement('details');note.className='review-canvas-help';const summary=document.createElement('summary');summary.textContent='How to inspect these planes';const help=document.createElement('p');help.textContent='Click a voxel to synchronize XY, XZ and YZ. Arrow keys move the focused crosshair. A candidate row locates its label. Review decisions leave the segmentation unchanged; use Annotate to draw.';note.append(summary,help);host.append(note);
+ host.append(grid);const note=document.createElement('details');note.className='review-canvas-help';const summary=document.createElement('summary');summary.textContent='How to inspect these planes';const help=document.createElement('p');help.textContent='Click a voxel to synchronize XY, XZ and YZ. Arrow keys move the focused crosshair. A candidate row locates its label. Correct mask opens a preview and saves a new label revision; Annotate draws independent points and traces.';note.append(summary,help);host.append(note);
  const heading=document.createElement('h2');heading.textContent='Inspect this volume';panel.append(heading);
  const positions=document.createElement('div');positions.className='review-position-controls';
  for(const [axis,max] of [['x',state.meta.shape[3]-1],['y',state.meta.shape[2]-1],['z',state.meta.shape[0]-1]]){
@@ -70,7 +70,7 @@ function renderReviewWorkspace(){
  panel.append(positions);const loading=document.createElement('p');loading.id='review-status';loading.role='status';loading.textContent='Loading acquired planes…';panel.append(loading);
  const info=document.createElement('section');info.id='object-inspector';info.className='object-inspector';panel.append(info);
  const limits=document.createElement('p');limits.id='review-window-info';limits.className='muted';panel.append(limits);
- const caveat=document.createElement('p');caveat.className='review-caveat';caveat.textContent='Labels are algorithm candidates. Boundary contact is a review flag, not proof of an incomplete cell. Selecting an object does not accept it or change its segmentation.';panel.append(caveat);
+ const caveat=document.createElement('p');caveat.className='review-caveat';caveat.textContent='Labels are algorithm candidates. Boundary contact is a review flag, not proof of an incomplete cell. The reviewed count needs explicit count rules and decisions on every included object.';panel.append(caveat);
  scheduleReview();
 }
 function clampReviewCursor(){const [nz,,ny,nx]=state.meta.shape;reviewState.x=Math.max(0,Math.min(nx-1,Math.floor(reviewState.x)));reviewState.y=Math.max(0,Math.min(ny-1,Math.floor(reviewState.y)));state.z=Math.max(0,Math.min(nz-1,Math.floor(state.z)));$('#z').value=state.z;$('#zlabel').textContent=(state.z+1)+' / '+nz;for(const a of ['x','y','z']){const input=$('#review-'+a);if(input)input.value=a==='z'?state.z:reviewState[a]}}

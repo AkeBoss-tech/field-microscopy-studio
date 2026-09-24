@@ -54,10 +54,10 @@ def encode_plane(intensity, labels, size, limits, style, opacity, selected=0):
 
 
 @lru_cache(maxsize=8)
-def object_index(store, run_id):
-    # Completed runs are immutable. Cache compact metrics, never another label volume.
-    import server as s
-    labels = s.run_array(run_id, 'labels')
+def object_index(store, run_id, label_revision=None):
+    # Cache geometry by immutable label revision, not by the mutable latest pointer.
+    from corrections import label_array
+    labels = label_array(run_id, label_revision)
     sizes = np.bincount(labels.ravel())
     boxes = ndi.find_objects(labels)
     edge_ids = {}
@@ -103,6 +103,7 @@ def inspect_volume(q):
     r = None
     labels = None
     factor = 1
+    label_revision = None
     if run_id:
         r, _ = s.getrun(run_id)
         if r['dataset'] != key or r['channel'] != channel:
@@ -114,7 +115,9 @@ def inspect_volume(q):
         if tuple(r['shape']) != expected:
             raise ValueError('Run dimensions do not match the source coordinate grid')
         if r['method'] != 'preprocess':
-            labels = s.run_array(run_id, 'labels')
+            from corrections import active
+            labels, correction = active(run_id)
+            label_revision = correction['revision']
     if layer != 'raw' and not r:
         raise ValueError('Choose a processing run for this intensity layer')
     if layer == 'ridge-response' and not r.get('ridge_response'):
@@ -128,7 +131,7 @@ def inspect_volume(q):
     object_id = int(labels[z, y // factor, x // factor]) if labels is not None else 0
     obj = None
     if object_id:
-        sizes, boxes, edges = object_index(str(s.STORE), run_id)
+        sizes, boxes, edges = object_index(str(s.STORE), run_id, label_revision)
         zz, yy, xx = boxes[object_id - 1]
         voxels = int(sizes[object_id])
         sx, sy, sz = d['spacing']
@@ -137,11 +140,14 @@ def inspect_volume(q):
                    bounds_native=[[xx.start * factor, yy.start * factor, zz.start],
                                   [min(nx, xx.stop * factor), min(ny, yy.stop * factor), zz.stop]],
                    boundary_faces=edges.get(object_id, []), status='unreviewed', run=run_id)
-        from measurements import current
+        from measurements import current, decision_for
+        from corrections import current as correction_current
         with s.LOCK:
             snapshot = current(s.STORE / 'runs' / run_id)
-        decision = snapshot['decisions'].get(str(object_id), {})
-        obj.update(status=decision.get('status', 'unreviewed'), note=decision.get('note', ''), review_revision=snapshot['revision'])
+            correction = correction_current(s.STORE / 'runs' / run_id)
+        decision = decision_for(snapshot, correction, object_id)
+        obj.update(status=decision.get('status', 'unreviewed'), note=decision.get('note', ''),
+                   review_revision=snapshot['revision'], label_revision=label_revision)
     planes = {}
     for axis, size in [('xy', (nx, ny)), ('xz', (nx, nz)), ('yz', (ny, nz))]:
         a = plane(intensity, axis, cursor, intensity_factor)
@@ -153,5 +159,6 @@ def inspect_volume(q):
                 factor=factor, source_window=source_window, result_window=result_window,
                 planes=planes, object=obj, source_intensity=float(source[z, y, x]),
                 result_value=float(intensity[z, y // intensity_factor, x // intensity_factor]),
-                objects=int(r['objects']) if r else 0,
+                objects=int(np.count_nonzero(np.unique(labels))) if labels is not None else 0,
+                label_revision=label_revision,
                 meaning=r['meaning'] if r else 'Source intensity; no segmentation')

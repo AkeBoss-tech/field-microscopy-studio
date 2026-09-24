@@ -19,7 +19,7 @@ The starter scans are the user-authorized real iMOP neuron TIFF (14 Z, 2 channel
 
 Choose **Start a task** for cell-body candidates, nucleus candidates, neurite networks, or intensity preparation. The processing recipe stays compact; **Settings** opens detailed controls in a dialog. Preview a bounded crop, then run the full image. **Review** links raw XY, result XY, XZ, and YZ planes and offers candidate filters and decisions. Counts remain candidate counts until reviewed. See [four visually reviewed point examples for each starter scan](examples/visual-point-examples/README.md); these locate bright structures on specified planes and are not complete biological cell counts.
 
-[Six downloadable procedural counting scenes](examples/synthetic-v2/README.md) include exact body masks, center and owner truth, benchmark scores, and tuning output. Import an image TIFF as source; truth files are for scoring. All six passed the native workflow, while the algorithms still make counting errors in harder 3D cases.
+[Eleven downloadable procedural counting scenes](examples/synthetic-v3/README.md) include exact body masks, center and owner truth, benchmark scores, and tuning output. Import an image TIFF as source; truth files are for scoring. All eleven passed the native import/preview/run/review workflow, while empty-field controls exposed severe false-positive counts. Review supports versioned mask corrections, explicit count rules, and revision-pinned exports. Reviewer decisions do not establish biological accuracy.
 
 ## Free browser demo
 

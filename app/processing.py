@@ -93,7 +93,8 @@ def process(array, params, metadata, factor, cancelled=None):
             dist = ndi.distance_transform_edt(mask, sampling=spacing)
             peaks = physical_peaks(dist, mask, spacing, effective['seed_distance']) if effective['units'] == 'physical' else peak_local_max(dist, min_distance=effective['seed_distance'], labels=mask, exclude_border=False)
             markers = np.zeros(mask.shape, np.int32)
-            markers[tuple(peaks.T)] = np.arange(1, len(peaks)+1)
+            if len(peaks):
+                markers[tuple(peaks.T)] = np.arange(1, len(peaks)+1)
             labels = watershed(-dist, markers, mask=mask).astype(np.uint32)
         else:
             labels = ndi.label(mask)[0].astype(np.uint32)

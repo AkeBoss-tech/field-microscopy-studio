@@ -263,9 +263,10 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/recipes':return self.send([json.loads(p.read_text()) for p in (STORE/'recipes').glob('*.json')])
    if path=='/api/datasets':return self.send([dict(id=d['id'],name=d['name']) for d in DATA.values()])
    if path=='/api/dataset':return self.send(metadata(q['id']))
-   if path in ['/api/measurements','/api/object-location','/api/measurements.csv']:
-    from measurements import table, locate, csv_export
+   if path in ['/api/measurements','/api/object-location','/api/measurements.csv','/api/count-summary.json']:
+    from measurements import table, locate, csv_export, summary_export
     if path=='/api/measurements.csv':return self.send(csv_export(q),ctype='text/csv; charset=utf-8')
+    if path=='/api/count-summary.json':return self.send(summary_export(q),ctype='application/json')
     return self.send(locate(q) if path=='/api/object-location' else table(q))
    if path=='/api/review':
     from review import inspect_volume
@@ -287,6 +288,15 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/result-file':
     r,folder=getrun(q['run']);kind=q.get('kind','labels')
     if kind=='geometry':return self.send(GEOMETRY.get(q['run'],{}))
+    if kind=='corrected-labels':
+     from measurements import context, current, protocol_current, _pinned
+     from corrections import current as correction_current
+     context(q)
+     with LOCK:
+      review=current(folder);correction=correction_current(folder);protocol=protocol_current(folder)
+      _pinned(q,review,correction,protocol)
+      file=folder/'corrections'/(correction['revision']+'.tif') if correction['revision'] else folder/'labels.tif'
+      return self.send(file.read_bytes(),ctype='application/octet-stream')
     if kind!='labels':raise ValueError('Unsupported result artifact')
     file=Path(r['mask_path']) if r.get('historical') and r.get('mask_path') else folder/'labels.tif'
     if not file.is_file():raise ValueError('This result contains geometry, not labels')
@@ -350,6 +360,12 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/object-decision':
     from measurements import save
     return self.send(save(body))
+   if path=='/api/count-protocol':
+    from measurements import save_protocol
+    return self.send(save_protocol(body))
+   if path in ('/api/correction-preview','/api/correction-save'):
+    from corrections import preview,save
+    return self.send(preview(body) if path.endswith('preview') else save(body))
    if path=='/api/preview':
     from experiments import preview
     return self.send(preview(body))

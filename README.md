@@ -45,7 +45,9 @@ A/B comparisons use two current full-volume runs from the active image/channel, 
 
 For repeatable method checks, [generate a synthetic counting dataset](docs/synthetic-benchmark.md) with exact 2D/3D body truth and neurite ownership. The generator can set image intensity ranges from the supplied TUBB3 and iMOP neuron scans, then score the classical methods. Synthetic scores do not establish biological accuracy.
 
-[Download six validated procedural scenes and exact truth](examples/synthetic-v2/README.md) to reproduce the import, preview, run and review workflow. The hosted Space includes the same example files.
+[Download eleven procedural scenes and exact truth](examples/synthetic-v3/README.md) to reproduce the import, preview, run and review workflow. The five added stress controls expose false positives on empty fields. The original [v2 examples](examples/synthetic-v2/README.md) remain available.
+
+Review now offers previewed Add, Delete, Split and Merge corrections in a separate, versioned label layer. Original algorithm labels and source pixels remain immutable. Explicit count rules record target, channel meaning, and edge policy; a reviewed candidate count appears only after every included object has a decision. Export pins label, decision, and count-rule revisions and includes corrected TIFF, candidate CSV, and count JSON. The split is a straight plane and Add is an ellipsoid, so each correction requires inspection in acquired XY/XZ/YZ views. These reviewer assessments are not independent biological ground truth. Follow the [real-image validation protocol](docs/real-validation-protocol.md) before using counts as a scientific result.
 
 [Visually reviewed point examples for both starter images](examples/visual-point-examples/README.md) include annotated PNGs, native-coordinate JSON and ImageJ ROI ZIPs. Their eight points confidently locate distinct bright structures on specified planes; they are not complete biological cell counts or validated neuron identities.
 

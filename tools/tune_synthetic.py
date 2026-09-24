@@ -14,7 +14,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.processing import process
-from tools.synthetic_benchmark import CASES, make_scene, reference_style, score_instances
+from tools.synthetic_benchmark import CASES, CORE_CASES, make_scene, reference_style, score_instances
 
 
 DEVELOPMENT_SEEDS = (17, 31)
@@ -36,10 +36,13 @@ def recipes() -> list[dict]:
     return result
 
 
-def scenes(dimension: str, seeds: tuple[int, ...], style: dict) -> list[tuple[str, np.ndarray, np.ndarray]]:
+def scenes(dimension: str, seeds: tuple[int, ...], style: dict,
+           cases=CORE_CASES) -> list[tuple[str, np.ndarray, np.ndarray]]:
     items = []
     for seed in seeds:
         for index, (name, shape, count, challenge, neurons) in enumerate(CASES):
+            if (name, shape, count, challenge, neurons) not in cases:
+                continue
             if ("3D" if shape[0] > 1 else "2D") != dimension:
                 continue
             image, labels, _, _ = make_scene(shape, count, challenge, neurons,
@@ -81,6 +84,8 @@ def tune(reference_2d: Path | None, reference_3d: Path | None) -> dict:
             "selected_recipe": selected, "development": candidates[0][0],
             "holdout": evaluate(selected, holdout),
             "baseline_recipe": base, "baseline_holdout": evaluate(base, holdout),
+            "stress_holdout": evaluate(selected, scenes(dimension, (HOLDOUT_SEED,),
+                                                        styles[dimension], CASES[len(CORE_CASES):])),
         }
     return output
 

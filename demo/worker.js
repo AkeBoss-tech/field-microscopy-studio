@@ -8,7 +8,7 @@ const ready=(async()=>{
  progress('Loading NumPy, SciPy and image processing…');await py.loadPackage(['numpy','scipy','scikit-image','pillow','micropip']);
  await py.runPythonAsync("import micropip\nawait micropip.install(['tifffile==2025.5.10','czifile==2019.7.2.2','roifile==2025.5.10'])");
  py.FS.mkdirTree('/app/starter');py.FS.mkdirTree('/store');py.FS.mount(py.FS.filesystems.IDBFS,{},'/store');await sync(true);
- for(const name of ['server.py','catalog.py','persistence.py','review.py','processing.py','experiments.py','measurements.py','browser_adapter.py']){const r=await fetch('./python/'+name+self.location.search,{cache:'no-store'});if(!r.ok)throw Error('Missing engine file '+name);py.FS.writeFile('/app/'+name,await r.text())}
+ for(const name of ['server.py','catalog.py','persistence.py','review.py','processing.py','experiments.py','measurements.py','corrections.py','browser_adapter.py']){const r=await fetch('./python/'+name+self.location.search,{cache:'no-store'});if(!r.ok)throw Error('Missing engine file '+name);py.FS.writeFile('/app/'+name,await r.text())}
  manifest=await (await fetch('./starter/manifest.json')).json();
  for(const item of manifest){py.FS.writeFile('/app/starter/'+item.id+'.json',JSON.stringify(item))}
  await py.runPythonAsync("import os,sys\nos.environ.update(STUDIO_ROOT='/app',STUDIO_STORE='/store',STUDIO_UPLOAD_MB='100',STUDIO_MAX_VOXELS='200000000',STUDIO_PROCESS_VOXELS='8000000',STUDIO_STORE_MB='1500')\nsys.path.insert(0,'/app')\nfrom browser_adapter import request");progress('Ready · images stay on this device');

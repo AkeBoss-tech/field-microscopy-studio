@@ -1,0 +1,155 @@
+{
+  "shape_zyx": [
+    1,
+    128,
+    128
+  ],
+  "body_count": 10,
+  "body_centers_zyx": [
+    {
+      "id": 1,
+      "center": [
+        0.0,
+        28.0,
+        26.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.597223076870291,
+        7.8696587171528645
+      ]
+    },
+    {
+      "id": 2,
+      "center": [
+        0.0,
+        28.0,
+        38.70055838914533
+      ],
+      "radii_zyx": [
+        1.0,
+        6.123293312144014,
+        5.330899671992466
+      ]
+    },
+    {
+      "id": 3,
+      "center": [
+        0.0,
+        28.0,
+        78.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.87908527717144,
+        7.255706981471809
+      ]
+    },
+    {
+      "id": 4,
+      "center": [
+        0.0,
+        28.0,
+        92.06319283548224
+      ],
+      "radii_zyx": [
+        1.0,
+        7.577283848604986,
+        7.307485854010436
+      ]
+    },
+    {
+      "id": 5,
+      "center": [
+        0.0,
+        59.0,
+        26.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.9014438789197445,
+        5.489607959391428
+      ]
+    },
+    {
+      "id": 6,
+      "center": [
+        0.0,
+        59.0,
+        38.93444229013139
+      ],
+      "radii_zyx": [
+        1.0,
+        6.2543844848928725,
+        7.944834330739968
+      ]
+    },
+    {
+      "id": 7,
+      "center": [
+        0.0,
+        59.0,
+        78.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.629556132193326,
+        8.554407780705551
+      ]
+    },
+    {
+      "id": 8,
+      "center": [
+        0.0,
+        59.0,
+        91.15602346619212
+      ],
+      "radii_zyx": [
+        1.0,
+        8.793283527479767,
+        5.101615685486575
+      ]
+    },
+    {
+      "id": 9,
+      "center": [
+        0.0,
+        91.0,
+        26.0
+      ],
+      "radii_zyx": [
+        1.0,
+        7.9521543407964845,
+        7.690400306273952
+      ]
+    },
+    {
+      "id": 10,
+      "center": [
+        0.0,
+        91.0,
+        40.74089705792621
+      ],
+      "radii_zyx": [
+        1.0,
+        7.500750561956087,
+        7.550496751652263
+      ]
+    }
+  ],
+  "neurite_graphs": [],
+  "challenge": "touching",
+  "degradation": null,
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 18,
+  "image": "cells_touching_2d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "166d6a6475302a4c3a05eaee36481d3c9fd2a4de3a5a60c4017610bd9b762467",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}

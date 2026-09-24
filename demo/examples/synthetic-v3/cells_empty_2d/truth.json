@@ -1,0 +1,24 @@
+{
+  "shape_zyx": [
+    1,
+    128,
+    128
+  ],
+  "body_count": 0,
+  "body_centers_zyx": [],
+  "neurite_graphs": [],
+  "challenge": "empty",
+  "degradation": null,
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 23,
+  "image": "cells_empty_2d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "166d6a6475302a4c3a05eaee36481d3c9fd2a4de3a5a60c4017610bd9b762467",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}

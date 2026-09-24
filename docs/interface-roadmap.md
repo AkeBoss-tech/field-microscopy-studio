@@ -1,6 +1,6 @@
 # FIELD interface improvement roadmap
 
-Prepared 2026-09-19 from the deployed-app audit and real iMOP/hair-cell processing. Linked volume review, crop experiments and candidate review/measurement increments are implemented locally; segmentation correction and compute milestones remain proposals. No deployment is included.
+Prepared 2026-09-19 from the deployed-app audit and real iMOP/hair-cell processing. Historical milestone notes below describe the state on their dates. The latest implementation status is recorded at the end of this document.
 
 The target workflow is **Inspect → Prepare → Find candidates → Review/correct → Measure/export**. Each step should expose its input, output and evidence in the same image workspace.
 
@@ -50,3 +50,11 @@ Implemented: paginated candidate table linked to actual labeled voxels in acquir
 31 tests pass, including eight candidate-measurement tests covering sparse IDs, physical geometry, filters, pagination, actual-voxel location, concurrent saves, persistence rollback, immutable labels, cross-run isolation and exact export selection/provenance. Native and browser-only workflows were exercised on real saved runs. Claude provided design and code reviews; pagination findings were fixed and verified in the browser. Evidence is in `outputs/studio-measurements-20260919/` in the enclosing workspace.
 
 Next milestone: previewed segmentation corrections with immutable label revisions, updated object identities and recalculated measurements. This requires explicit split/merge semantics, provenance from original labels to revised objects, undo/replay, and expert-reviewed fixtures. Authenticated reviewer attribution, shape/intensity distributions, advanced exports and a shared lab compute worker are still outstanding.
+
+## Correction and count workflow — 2026-09-23
+
+Implemented: previewed straight-plane split, merge, delete, small ellipsoid add, and undo to the preceding label state. Every saved correction writes an immutable TIFF and metadata revision while preserving the original run labels and source pixels. Review views, object table, location, edge flags, and calibrated volumes use the active corrected revision. Decisions on changed objects become unreviewed until assessed again. The count-rules popup records target, channel meaning, and edge inclusion; only a fully decided Otsu/watershed run produces a reviewed candidate count. CSV, count JSON, and corrected TIFF exports pin the label, decision, and protocol revisions.
+
+The browser correction dialog was exercised on the synthetic touching 3D scene: a preview showed XY/XZ/YZ and split 448 voxels into 225 and 223, increasing candidates from 9 to 10. The revision and count rules survived a native-server page reload. The original algorithm result stayed at 9. This is geometry editing, not expert validation. A straight split plane and ellipsoid add cannot express arbitrary biological boundaries; a freehand/brush refinement remains future work. Shared reviewer attribution and multiuser consistency remain unavailable in the browser-only Space.
+
+The v3 synthetic suite adds five stress controls. All eleven imported, previewed, ran, exported labels, and rendered orthogonal review on an isolated native server. The frozen watershed recipe falsely detected 34 and 134 objects in empty 2D and 3D scenes. This is a visible method failure, not a dataset integrity failure. `tools/score_expert_benchmark.py` now validates provenance and specimen-level split separation for future expert-adjudicated real masks. No expert-adjudicated whole-region masks for the two real starters are available, so real count precision and recall remain unknown.

@@ -27,7 +27,13 @@ CASES = (
     ("neurons_crossing_2d", (1, 128, 128), 5, "crossing", True),
     ("cells_touching_3d", (12, 128, 128), 8, "touching", False),
     ("neurons_crossing_3d", (12, 128, 128), 5, "crossing", True),
+    ("cells_empty_2d", (1, 128, 128), 0, "empty", False),
+    ("cells_empty_3d", (12, 128, 128), 0, "empty", False),
+    ("cells_edge_2d", (1, 128, 128), 2, "edge", False),
+    ("cells_edge_3d", (12, 128, 128), 2, "edge", False),
+    ("cells_attenuated_3d", (12, 128, 128), 6, "attenuated", False),
 )
+CORE_CASES = CASES[:6]
 
 
 def reference_style(path: Path | None) -> dict:
@@ -68,8 +74,10 @@ def make_scene(shape: tuple[int, int, int], count: int, challenge: str,
     """Return image, body labels, owner masks, and exact graph/center truth."""
     rng = np.random.default_rng(seed)
     nz, ny, nx = shape
-    if min(ny, nx) < 128 or nz not in (1, 12) or count < 2:
+    if min(ny, nx) < 128 or nz not in (1, 12) or count < 0 or (count < 2 and challenge != 'empty'):
         raise ValueError("Scene layout requires at least 128 × 128 and either 1 or 12 Z planes")
+    if challenge == 'empty' and count != 0:
+        raise ValueError('Empty control must contain zero bodies')
     labels = np.zeros(shape, np.uint16)
     owners = np.zeros((count, *shape), bool)
     centers: list[list[float]] = []
@@ -89,7 +97,11 @@ def make_scene(shape: tuple[int, int, int], count: int, challenge: str,
         ry, rx = rng.uniform(5, 9, 2)
         rz = rng.uniform(1.4, 2.5) if nz > 1 else 1.0
         radius = [float(rz), float(ry), float(rx)]
-        if challenge == "touching":
+        if challenge == "edge":
+            cz = float((.5, nz - 1.5)[i]) if nz > 1 else 0.0
+            cy = float((2, ny - 3)[i])
+            cx = float((2, nx - 3)[i])
+        elif challenge == "touching":
             if i // 2 >= len(pair_anchors):
                 raise ValueError("Too many touching pairs for this scene")
             ay, ax = pair_anchors[i // 2]
@@ -151,6 +163,8 @@ def make_scene(shape: tuple[int, int, int], count: int, challenge: str,
     field = np.clip(field, 0, 1.5)
     if challenge == "dim":
         field *= .45
+    if challenge == "attenuated":
+        field *= np.linspace(1.0, .25, nz, dtype=np.float32)[:, None, None]
     low = style["background"]
     signal = style["signal"]
     shading = ndi.gaussian_filter(rng.normal(size=shape).astype(np.float32),
@@ -164,6 +178,7 @@ def make_scene(shape: tuple[int, int, int], count: int, challenge: str,
              "body_centers_zyx": [{"id": i + 1, "center": center, "radii_zyx": radii[i]}
                                    for i, center in enumerate(centers)],
              "neurite_graphs": graphs, "challenge": challenge,
+             "degradation": "linear Z signal attenuation from 1.0 to 0.25; illustrative, not measured" if challenge == "attenuated" else None,
              "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership."}
     validate_scene(labels, owners, truth)
     return image, labels, owners, truth
@@ -180,7 +195,7 @@ def validate_scene(labels: np.ndarray, owners: np.ndarray, truth: dict) -> None:
         center = tuple(np.rint(item["center"]).astype(int))
         if labels[center] != item["id"]:
             raise ValueError("A body center is outside its own instance")
-    if truth["challenge"] in ("isolated", "dim"):
+    if truth["challenge"] in ("isolated", "dim", "attenuated"):
         for i in range(1, count + 1):
             if np.any(ndi.binary_dilation(labels == i, iterations=2) &
                       ((labels > 0) & (labels != i))):
@@ -189,6 +204,17 @@ def validate_scene(labels: np.ndarray, owners: np.ndarray, truth: dict) -> None:
         for first in range(1, count + 1, 2):
             if not np.any(ndi.binary_dilation(labels == first) & (labels == first + 1)):
                 raise ValueError("A promised touching pair does not touch")
+    if truth["challenge"] == "empty" and (count or np.any(labels) or np.any(owners)):
+        raise ValueError("Empty control contains objects")
+    if truth["challenge"] == "edge":
+        if count != 2:
+            raise ValueError("Edge control requires two truncated bodies")
+        if not np.any(labels[:, 0, :] == 1) or not np.any(labels[:, :, 0] == 1):
+            raise ValueError("First body is not truncated at X/Y start")
+        if not np.any(labels[:, -1, :] == 2) or not np.any(labels[:, :, -1] == 2):
+            raise ValueError("Second body is not truncated at X/Y end")
+        if labels.shape[0] > 1 and (not np.any(labels[0] == 1) or not np.any(labels[-1] == 2)):
+            raise ValueError("3D edge bodies are not truncated at Z faces")
     if truth["challenge"] == "crossing":
         xy = (64, 64)
         if not np.all(np.any(owners[:2, :, xy[0], xy[1]], axis=1)):
@@ -226,12 +252,15 @@ def score_instances(truth: np.ndarray, predicted: np.ndarray) -> dict:
         matched = int(np.count_nonzero(overlap[rows, cols] >= .3))
     else:
         matched = 0
-    precision = matched / len(pred_ids) if len(pred_ids) else 0.0
-    recall = matched / len(true_ids) if len(true_ids) else 0.0
+    # A correctly empty image is a passed negative control; any object is a false positive.
+    precision = matched / len(pred_ids) if len(pred_ids) else (1.0 if not len(true_ids) else 0.0)
+    recall = matched / len(true_ids) if len(true_ids) else 1.0
     return {"truth_count": len(true_ids), "candidate_count": len(pred_ids),
             "count_error": int(len(pred_ids) - len(true_ids)), "matched_iou_0_3": matched,
             "precision_iou_0_3": precision, "recall_iou_0_3": recall,
-            "f1_iou_0_3": 2 * precision * recall / (precision + recall) if precision + recall else 0.0}
+            "f1_iou_0_3": 2 * precision * recall / (precision + recall) if precision + recall else 0.0,
+            "empty_scene_correct": bool(not len(true_ids) and not len(pred_ids)) if not len(true_ids) else None,
+            "false_positive_objects": int(len(pred_ids) - matched)}
 
 
 def generate(out: Path, seed: int = 17, reference: Path | None = None,
@@ -299,7 +328,8 @@ def evaluate_suite(out: Path) -> list[dict]:
             scores = score_instances(labels, predicted) if method != "preprocess" else {
                 "truth_count": len(np.unique(labels)) - 1, "candidate_count": 0,
                 "count_error": "", "matched_iou_0_3": "", "precision_iou_0_3": "",
-                "recall_iou_0_3": "", "f1_iou_0_3": ""}
+                "recall_iou_0_3": "", "f1_iou_0_3": "", "empty_scene_correct": "",
+                "false_positive_objects": ""}
             results.append({"case": record["case"],
                             "algorithm": method + ("_3d_grid" if method == "sato" and mode == "volume" else "_xy" if method == "sato" else ""),
                             "interpretation": "intensity only; no count" if method == "preprocess" else "network components; not body counts" if method == "sato" else "body candidates",

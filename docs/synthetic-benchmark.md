@@ -1,41 +1,34 @@
 # Synthetic counting benchmark
 
-Run `tools/synthetic_benchmark.py` from the repository root. The generator creates six small TIFF scenes with exact soma/body instance masks, center coordinates, and, for the neuron scenes, separate owner masks and branch graphs. It includes isolated, touching, dim, crossing, 2D, and 3D cases. Seeds make each scene reproducible. The reference scans set **intensity ranges only**; their cells and labels are not copied into the generated scenes.
+The [v3 example suite](../examples/synthetic-v3/README.md) contains **11 reproducible 2D/3D scenes** with exact body instance masks and centers. Neuron scenes also include owner-specific neurite masks and branch graphs. The first six exercise isolated, touching, dim, and crossing objects. Five stress controls add empty 2D/3D fields, edge-truncated 2D/3D bodies, and a depth-attenuated 3D field. The reference scans set intensity ranges only; no real cells or labels are copied.
 
 ```sh
 .venv/bin/python tools/synthetic_benchmark.py \
-  --out ../outputs/field-synthetic-v2 \
+  --out ../outputs/field-synthetic-v3 \
   --reference '/Users/akashdubey/Downloads/TF1_011526_Tubb3_40X_C4_F2_MMStack_Default.ome.tif' \
   --reference-3d starter/imop.ome.tif \
   --evaluate
-```
-
-Each case contains a descriptively named `<case>.ome.tif` for import into FIELD, `body_instances.tif` with IDs 1 through N, and `truth.json` with exact centers and source hash. Neuron cases also contain `neurite_owners.tif`, whose first axis is owner ID. The generator checks every instance ID and center, body separation or contact as promised by the case name, 2D projected crossings and distinct 3D crossing depths, and graph samples against owner masks. `manifest.json` records source files and seeds. `scores.csv` runs the app's shared preprocessing, Otsu, watershed, and Sato code at native XY resolution, including both XY and legacy 3D-grid Sato on volumes. Body candidate masks are matched one-to-one to truth at IoU ≥ 0.3, with signed count error, precision, recall, and F1. Preprocessing has no count score. Sato scores are diagnostic overlap only: its connected networks are **not** neuron counts.
-
-To tune a body-count recipe without reusing the same generated fields for selection and reporting:
-
-```sh
 .venv/bin/python tools/tune_synthetic.py \
-  --out ../outputs/field-synthetic-v2/tuning.json \
+  --out ../outputs/field-synthetic-v3/tuning.json \
   --reference '/Users/akashdubey/Downloads/TF1_011526_Tubb3_40X_C4_F2_MMStack_Default.ome.tif' \
   --reference-3d starter/imop.ome.tif
 ```
 
-The tuner searches Otsu/watershed smoothing, threshold, and watershed seed spacing on development seeds 17 and 31. It freezes one 2D and one 3D recipe, then reports instance F1 and signed count errors on seed 53. Never select parameters on the holdout result. Tune the real workflow next by defining the biological count target and edge rule, obtaining expert marks on independent fields, previewing representative sparse/touching/dim areas, checking A/B overlays at the same channel, Z, and working resolution, and selecting parameters on the development fields. Lock the recipe before evaluating an entire held-out specimen. Review algorithm candidate IDs separately from accepted biological counts.
+Each scene has an importable `<case>.ome.tif`, `body_instances.tif`, and `truth.json`. Neuron scenes add `neurite_owners.tif`. The generator validates IDs, centers, expected contact or separation, edge truncation, projected crossings, and owner graphs. `scores.csv` checks the shared preprocessing, Otsu, watershed, and Sato implementations. One-to-one body matches use IoU ≥ 0.3. Empty scenes report false-positive candidate count; a correctly empty scene scores F1 1 and any nonempty prediction scores F1 0. Sato component overlap is diagnostic only: connected networks are **not** neuron counts.
 
-To test the **native app workflow** against all six generated files, start a local server with an isolated `STUDIO_STORE`, then run:
+The tuner searches Otsu/watershed parameters on development seeds 17 and 31 of the six core scenes, freezes one 2D and one 3D recipe, and scores seed 53. The five stress controls are scored separately on the frozen recipe, so they cannot influence its selection. Never tune on the holdout scores.
+
+To test import, crop preview, full run, label export, and linked XY/XZ/YZ review on a native server with an isolated `STUDIO_STORE`:
 
 ```sh
 .venv/bin/python tools/verify_synthetic_workflow.py \
-  --suite ../outputs/field-synthetic-v2 \
-  --tuning ../outputs/field-synthetic-v2/tuning.json \
-  --out ../outputs/field-synthetic-v2/workflow.json
+  --suite ../outputs/field-synthetic-v3 \
+  --tuning ../outputs/field-synthetic-v3/tuning.json \
+  --out ../outputs/field-synthetic-v3/workflow.json
 ```
 
-This checks import axes/shape, unsaved crop preview, completed full-volume run, exported label dimensions, and raw/XY/XZ/YZ review panels for every scene. The six stages can all pass while some candidate counts are wrong. On the checked seed-17 suite, 2D cases each matched exact body counts, while the 3D touching scene produced 9 candidates for 8 bodies with the tuned recipe. On the independent seed-53 suite the 3D crossing scene produced 6 candidates for 5 bodies; macro F1 was 0.955 versus 0.798 with the earlier default spacing. These scores describe this small phantom family only.
+**Observed on seed 17:** all 11/11 paths worked, but the frozen watershed recipe found 34 false objects in the empty 2D scene and 134 in the empty 3D scene. It also found 9 candidates for 8 touching 3D bodies and 7 for 6 attenuated 3D bodies. The seed-53 empty controls also failed, with 45 and 130 false objects. The original core 3D holdout macro F1 was 0.955, versus 0.798 with the earlier default seed spacing. These results expose both software correctness and a serious algorithm limitation; they do not establish biological count accuracy.
 
-To check the browser flow, import one `<case>.ome.tif`, choose a count task, preview a crop, run the full volume, and inspect its XY/XZ/YZ planes in Review. Do not import `body_instances.tif` as if it were the raw image. The generated scenes are uncalibrated in the app unless you deliberately supply the *simulated* spacing (1 µm XY, 2 µm Z); that spacing is illustrative and was not measured from the reference scans.
+To check the browser flow, import an image TIFF, choose a count task, preview a crop, run the full volume, and inspect Review. Do not import the truth TIFF as a source image. The simulated spacing is 1 µm XY and 2 µm Z; it was not measured from a microscope.
 
-The current renderer uses ellipsoids, graph lines, Gaussian blur, field shading, and approximate shot/read noise. It does not yet measure a point-spread function, bleaching, bleedthrough, or z-dependent attenuation from the microscope. It also lacks edge-truncated and zero-cell controls. Before using synthetic scores for method selection, add those stress cases and validate the renderer's appearance against held-out real images. Then freeze parameters on synthetic development cases and score on expert-reviewed real fields, grouping all crops/augmentations from one source specimen in the same split. The supplied TUBB3 frame is one 2D specimen; its transformed copies are not independent test images. Existing compact IDs require biological meaning to be confirmed before treating them as real soma truth.
-
-The benchmark checks processing behavior and failure modes. It does not certify counts, cell identities, or neurite ownership in real tissue.
+The renderer uses ellipsoids, graph lines, Gaussian blur, field shading, approximate shot/read noise, and simple linear Z attenuation in one stress scene. It does **not** measure the microscope point-spread function, bleaching, bleedthrough, or attenuation. Before selecting a real count recipe, compare synthetic appearance with real fields and follow the [expert validation protocol](real-validation-protocol.md). All crops and augmentations from one biological specimen must stay in one split. The supplied TUBB3 frame is one 2D specimen, not an independent dataset of transformed copies.

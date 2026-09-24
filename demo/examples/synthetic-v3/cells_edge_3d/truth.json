@@ -1,0 +1,51 @@
+{
+  "shape_zyx": [
+    12,
+    128,
+    128
+  ],
+  "body_count": 2,
+  "body_centers_zyx": [
+    {
+      "id": 1,
+      "center": [
+        0.5,
+        2.0,
+        2.0
+      ],
+      "radii_zyx": [
+        1.4743685340115587,
+        6.966395670419618,
+        5.937598095791666
+      ]
+    },
+    {
+      "id": 2,
+      "center": [
+        10.5,
+        125.0,
+        125.0
+      ],
+      "radii_zyx": [
+        2.0031703530433624,
+        7.8514328155284545,
+        8.25246080547776
+      ]
+    }
+  ],
+  "neurite_graphs": [],
+  "challenge": "edge",
+  "degradation": null,
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 26,
+  "image": "cells_edge_3d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "d9ce47b364ae7359508e632db30a3ce7a04359e4c33d8bfb5466ae62780536ca",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}

@@ -1,0 +1,103 @@
+{
+  "shape_zyx": [
+    12,
+    128,
+    128
+  ],
+  "body_count": 6,
+  "body_centers_zyx": [
+    {
+      "id": 1,
+      "center": [
+        6.0,
+        46.0,
+        57.0
+      ],
+      "radii_zyx": [
+        1.53331680874779,
+        7.790944865907141,
+        6.255257088889726
+      ]
+    },
+    {
+      "id": 2,
+      "center": [
+        8.0,
+        45.0,
+        43.0
+      ],
+      "radii_zyx": [
+        1.6188265389051226,
+        8.158669253063163,
+        5.040076495841268
+      ]
+    },
+    {
+      "id": 3,
+      "center": [
+        5.0,
+        100.0,
+        14.0
+      ],
+      "radii_zyx": [
+        1.5999977062248762,
+        8.773662846520207,
+        6.613748221005103
+      ]
+    },
+    {
+      "id": 4,
+      "center": [
+        8.0,
+        79.0,
+        40.0
+      ],
+      "radii_zyx": [
+        2.2289076137824817,
+        6.206991901742702,
+        6.420792416955928
+      ]
+    },
+    {
+      "id": 5,
+      "center": [
+        8.0,
+        103.0,
+        110.0
+      ],
+      "radii_zyx": [
+        2.1117740433021592,
+        8.157689614724783,
+        6.80335957738328
+      ]
+    },
+    {
+      "id": 6,
+      "center": [
+        3.0,
+        30.0,
+        25.0
+      ],
+      "radii_zyx": [
+        2.0613275937786963,
+        6.379652970244553,
+        8.081508952219101
+      ]
+    }
+  ],
+  "neurite_graphs": [],
+  "challenge": "attenuated",
+  "degradation": "linear Z signal attenuation from 1.0 to 0.25; illustrative, not measured",
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 27,
+  "image": "cells_attenuated_3d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "d9ce47b364ae7359508e632db30a3ce7a04359e4c33d8bfb5466ae62780536ca",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}

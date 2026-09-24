@@ -1,0 +1,129 @@
+{
+  "shape_zyx": [
+    1,
+    128,
+    128
+  ],
+  "body_count": 8,
+  "body_centers_zyx": [
+    {
+      "id": 1,
+      "center": [
+        0.0,
+        51.0,
+        41.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.681515182917043,
+        8.703477379266815
+      ]
+    },
+    {
+      "id": 2,
+      "center": [
+        0.0,
+        16.0,
+        85.0
+      ],
+      "radii_zyx": [
+        1.0,
+        5.240194416490107,
+        6.242173833252448
+      ]
+    },
+    {
+      "id": 3,
+      "center": [
+        0.0,
+        98.0,
+        45.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.123862327072732,
+        7.154799344318372
+      ]
+    },
+    {
+      "id": 4,
+      "center": [
+        0.0,
+        81.0,
+        57.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.665398917556598,
+        8.71230204607863
+      ]
+    },
+    {
+      "id": 5,
+      "center": [
+        0.0,
+        106.0,
+        85.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.638770409661873,
+        7.45298090331163
+      ]
+    },
+    {
+      "id": 6,
+      "center": [
+        0.0,
+        74.0,
+        78.0
+      ],
+      "radii_zyx": [
+        1.0,
+        7.480471386265544,
+        6.731848278864545
+      ]
+    },
+    {
+      "id": 7,
+      "center": [
+        0.0,
+        88.0,
+        22.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.6714551554693,
+        5.191827288123516
+      ]
+    },
+    {
+      "id": 8,
+      "center": [
+        0.0,
+        17.0,
+        109.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.046172433108623,
+        6.838789413839821
+      ]
+    }
+  ],
+  "neurite_graphs": [],
+  "challenge": "dim",
+  "degradation": null,
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 19,
+  "image": "cells_dim_2d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "166d6a6475302a4c3a05eaee36481d3c9fd2a4de3a5a60c4017610bd9b762467",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}
