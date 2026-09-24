@@ -224,7 +224,10 @@ def png_view(q):
  a,r=array_for(key,ch,run,q.get('kind','processed'))
  if r and r['scope']=='slice' and (mode!='slice' or z!=r['z']):raise ValueError('This run only covers source plane '+str(r['z']+1))
  if r and r['scope']=='projection' and mode!='projection':raise ValueError('Projection-only run cannot be displayed on an acquired slice')
- plane=a.max(0) if mode=='projection' else a[z if not r or r['scope']=='volume' else 0]
+ projection=q.get('projection','max')
+ if projection not in ('max','mean','sum'):raise ValueError('Choose maximum, average, or sum projection')
+ if r and r['scope']=='projection' and projection!='max':raise ValueError('Saved projection has no source Z stack; choose maximum or raw source')
+ plane=({'max':lambda:a.max(0),'mean':lambda:a.mean(0),'sum':lambda:a.sum(0)}[projection]() if mode=='projection' else a[z if not r or r['scope']=='volume' else 0])
  if overlay:
   a,r=array_for(key,ch,overlay,'labels')
   if r['scope']=='slice' and (mode!='slice' or z!=r['z']):raise ValueError('Overlay is on a different plane')
@@ -238,21 +241,56 @@ def png_view(q):
   rgba[:,:,0]=(ids*67%160+80);rgba[:,:,1]=(ids*113%160+80);rgba[:,:,2]=(ids*41%160+80);rgba[:,:,3]=valid*190
   img=Image.fromarray(rgba,'RGBA').resize((d['shape'][3],d['shape'][2]),Image.Resampling.NEAREST)
  else:
-  low,high=np.percentile(a,[1,99.7]);high=max(high,low+1e-9)
+  background=q.get('background','off')
+  if background not in ('off','local'):raise ValueError('Unknown background display mode')
+  if background=='local':
+   from scipy.ndimage import gaussian_filter
+   plane=np.maximum(plane.astype(np.float32)-gaussian_filter(plane.astype(np.float32),32/max(1,r['factor'] if r else 1)),0)
+   reference=plane
+  else:reference=plane if mode=='projection' and projection!='max' else a
+  low,high=np.percentile(reference,[1,99.7]);high=max(high,low+1e-9)
   gain=number(q.get('gain',1),.1,10);gray=np.uint8(np.clip((plane-low)/(high-low)*255*gain,0,255));img=Image.fromarray(gray,'L').resize((d['shape'][3],d['shape'][2]),Image.Resampling.BILINEAR)
  b=io.BytesIO();img.save(b,format='PNG');return b.getvalue()
 
 def points_view(q):
- key=q['dataset'];d=metadata(key);a,r=array_for(key,int(q.get('channel',0)),q.get('run'),q.get('kind','processed'))
+ key=q['dataset'];d=metadata(key);channel=int(number(q.get('channel',0),0,d['shape'][1]-1));a,r=array_for(key,channel,q.get('run'),q.get('kind','processed'))
  if r and r['scope']!='volume':raise ValueError('3D requires a volume run')
- factor=r['factor'] if r else 1;stride=max(1,int(np.ceil(a.shape[1]/256)));b=a[:,::stride,::stride];lo,hi=np.percentile(b,[50,99.7]);coords=np.argwhere(b>lo+.2*(hi-lo));coords=coords[::max(1,int(np.ceil(len(coords)/50000)))];values=np.clip((b[tuple(coords.T)]-lo)/max(hi-lo,1e-9),0,1)
- points=[[float(x*stride*factor+(factor-1)/2),float(y*stride*factor+(factor-1)/2),int(z),round(float(v),3),0] for (z,y,x),v in zip(coords,values)]
+ factor=r['factor'] if r else 1;bounds=[[0,0,0],[d['shape'][3],d['shape'][2],d['shape'][0]]];object_id=None;mask=None;mr=None
+ if q.get('object'):
+  if not q.get('overlay'):raise ValueError('Choose a segmentation run for an isolated cell')
+  from corrections import active
+  mr,_=getrun(q['overlay']);
+  if mr['dataset']!=key or mr['channel']!=channel or mr['scope']!='volume':raise ValueError('Cell mask must match the active image and channel')
+  mask,snapshot=active(q['overlay']);object_id=int(number(q['object'],1,4294967295));coords_mask=np.argwhere(mask==object_id)
+  if not len(coords_mask):raise ValueError('This cell is absent from the current mask revision')
+  low_box=coords_mask.min(0);high_box=coords_mask.max(0)+1;f=mr['factor'];bounds=[[int(low_box[2]*f),int(low_box[1]*f),int(low_box[0])],[min(d['shape'][3],int(high_box[2]*f)),min(d['shape'][2],int(high_box[1]*f)),int(high_box[0])]]
+ elif q.get('bounds'):
+  parts=[int(v) for v in q['bounds'].split(',')]
+  if len(parts)!=6 or any(parts[i]<0 or parts[i+3]>d['shape'][[3,2,0][i]] or parts[i]>=parts[i+3] for i in range(3)):raise ValueError('3D region must have valid X, Y, Z start and end bounds')
+  bounds=[parts[:3],parts[3:]]
+ x0,y0,z0=bounds[0];x1,y1,z1=bounds[1];cropped=a[z0:z1,y0//factor:int(np.ceil(y1/factor)),x0//factor:int(np.ceil(x1/factor))]
+ stride=max(1,int(np.ceil(max(cropped.shape[1:])/256)));b=cropped[:,::stride,::stride].astype(np.float32)
+ if q.get('background','off')=='local':
+  from scipy.ndimage import gaussian_filter
+  b=np.maximum(b-gaussian_filter(b,(0,32/max(1,factor*stride),32/max(1,factor*stride))),0)
+ elif q.get('background','off')!='off':raise ValueError('Unknown background display mode')
+ lo,hi=np.percentile(b,[50,99.7])
+ if object_id is not None:
+  grid_x=np.minimum(mask.shape[2]-1,((x0//factor+np.arange(b.shape[2])*stride)*factor//mr['factor']))
+  grid_y=np.minimum(mask.shape[1]-1,((y0//factor+np.arange(b.shape[1])*stride)*factor//mr['factor']))
+  coords=np.argwhere(mask[z0:z1][:,grid_y[:,None],grid_x[None,:]]==object_id)
+ else:coords=np.argwhere(b>lo+.2*(hi-lo))
+ native_x=(x0//factor+coords[:,2]*stride)*factor+(factor-1)/2
+ native_y=(y0//factor+coords[:,1]*stride)*factor+(factor-1)/2
+ coords=coords[(native_x>=x0)&(native_x<x1)&(native_y>=y0)&(native_y<y1)]
+ coords=coords[::max(1,int(np.ceil(len(coords)/50000)))];values=np.clip((b[tuple(coords.T)]-lo)/max(hi-lo,1e-9),0,1)
+ points=[[float((x0//factor+x*stride)*factor+(factor-1)/2),float((y0//factor+y*stride)*factor+(factor-1)/2),int(z0+z),round(float(v),3),object_id or 0] for (z,y,x),v in zip(coords,values)]
  if q.get('overlay'):
-  mask,mr=array_for(key,int(q.get('channel',0)),q['overlay'],'labels')
+  if mask is None:mask,mr=array_for(key,channel,q['overlay'],'labels')
   if mr['scope']!='volume':raise ValueError('3D overlays require volumetric labels')
   for pt in points:
    xx=min(mask.shape[2]-1,int(pt[0]/mr['factor']));yy=min(mask.shape[1]-1,int(pt[1]/mr['factor']));pt[4]=int(mask[pt[2],yy,xx])
- return dict(points=points,spacing=d['spacing'],shape=d['shape'],note='Sampled fluorescence points; masks color visible source samples, not full surfaces')
+ return dict(points=points,spacing=d['spacing'],shape=d['shape'],bounds_native=bounds,object=object_id,note='Sampled fluorescence points; masks color visible source samples, not full surfaces')
 
 class Handler(BaseHTTPRequestHandler):
  def valid_host(self):
@@ -285,7 +323,9 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(nearby(q))
    if path=='/api/image':return self.send(png_view(q),ctype='image/png')
    if path=='/api/probe':
-    key=q['dataset'];d=metadata(key);x=int(number(q['x'],0,d['shape'][3]-1));y=int(number(q['y'],0,d['shape'][2]-1));z=int(number(q['z'],0,d['shape'][0]-1));ch=int(number(q['channel'],0,d['shape'][1]-1));a=volume(key)[:,ch,y,x];result=dict(intensity=float(a.max() if q.get('view')=='projection' else a[z]),objects=[])
+    key=q['dataset'];d=metadata(key);x=int(number(q['x'],0,d['shape'][3]-1));y=int(number(q['y'],0,d['shape'][2]-1));z=int(number(q['z'],0,d['shape'][0]-1));ch=int(number(q['channel'],0,d['shape'][1]-1));a=volume(key)[:,ch,y,x];projection=q.get('projection','max');
+    if projection not in ('max','mean','sum'):raise ValueError('Unknown projection')
+    intensity={'max':a.max,'mean':a.mean,'sum':a.sum}[projection]() if q.get('view')=='projection' else a[z];result=dict(intensity=float(intensity),objects=[])
     if q.get('view')=='projection':result['peak_z']=int(a.argmax())
     if q.get('run'):
      mask,r=array_for(key,ch,q['run'],'labels');xx=min(mask.shape[2]-1,int(x/r['factor']));yy=min(mask.shape[1]-1,int(y/r['factor']))
