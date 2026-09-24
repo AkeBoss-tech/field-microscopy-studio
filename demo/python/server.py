@@ -292,6 +292,40 @@ def points_view(q):
    xx=min(mask.shape[2]-1,int(pt[0]/mr['factor']));yy=min(mask.shape[1]-1,int(pt[1]/mr['factor']));pt[4]=int(mask[pt[2],yy,xx])
  return dict(points=points,spacing=d['spacing'],shape=d['shape'],bounds_native=bounds,object=object_id,note='Sampled fluorescence points; masks color visible source samples, not full surfaces')
 
+def volume_atlas(q):
+ """A bounded, linearly filtered 3D texture encoded as a stack of PNG planes."""
+ key=q['dataset'];d=metadata(key);channel=int(number(q.get('channel',0),0,d['shape'][1]-1))
+ a,r=array_for(key,channel,q.get('run'),q.get('kind','processed'))
+ if r and r['scope']!='volume':raise ValueError('3D requires a volume run')
+ factor=r['factor'] if r else 1
+ if q.get('object'):
+  # Use the corrected mask's current object extent, as in the point preview.
+  bounds=points_view(q)['bounds_native']
+ elif q.get('bounds'):
+  parts=[int(v) for v in q['bounds'].split(',')]
+  if len(parts)!=6 or any(parts[i]<0 or parts[i+3]>d['shape'][[3,2,0][i]] or parts[i]>=parts[i+3] for i in range(3)):raise ValueError('3D region must have valid X, Y, Z start and end bounds')
+  bounds=[parts[:3],parts[3:]]
+ else:bounds=[[0,0,0],[d['shape'][3],d['shape'][2],d['shape'][0]]]
+ (x0,y0,z0),(x1,y1,z1)=bounds
+ b=a[z0:z1,y0//factor:int(np.ceil(y1/factor)),x0//factor:int(np.ceil(x1/factor))]
+ stride=max(1,int(np.ceil(max(b.shape[1:])/256)))
+ b=b[:,::stride,::stride].astype(np.float32)
+ if q.get('background','off')=='local':
+  from scipy.ndimage import gaussian_filter
+  b=np.maximum(b-gaussian_filter(b,(0,32/max(1,factor*stride),32/max(1,factor*stride))),0)
+ elif q.get('background','off')!='off':raise ValueError('Unknown background display mode')
+ if q.get('object'):
+  from corrections import active
+  mr,_=getrun(q['overlay']);mask,_=active(q['overlay']);object_id=int(q['object'])
+  grid_x=np.minimum(mask.shape[2]-1,((x0//factor+np.arange(b.shape[2])*stride)*factor//mr['factor']))
+  grid_y=np.minimum(mask.shape[1]-1,((y0//factor+np.arange(b.shape[1])*stride)*factor//mr['factor']))
+  b=np.where(mask[z0:z1][:,grid_y[:,None],grid_x[None,:]]==object_id,b,0)
+ if b.size>256*256*512:raise ValueError('3D texture exceeds browser limit')
+ low,high=np.percentile(b,[1,99.7]);high=max(high,low+1e-9)
+ gray=np.uint8(np.clip((b-low)/(high-low)*255,0,255))
+ image=Image.fromarray(gray.reshape(gray.shape[0]*gray.shape[1],gray.shape[2]),'L')
+ output=io.BytesIO();image.save(output,format='PNG');return output.getvalue()
+
 class Handler(BaseHTTPRequestHandler):
  def valid_host(self):
   allowed={'127.0.0.1:'+str(self.server.server_port),'localhost:'+str(self.server.server_port)}
@@ -336,6 +370,7 @@ class Handler(BaseHTTPRequestHandler):
      result['objects']=[int(i) for i in ids if i]
     return self.send(result)
    if path=='/api/points':return self.send(points_view(q))
+   if path=='/api/volume-atlas':return self.send(volume_atlas(q),ctype='image/png')
    if path=='/api/jobs':return self.send(list(JOBS.values()))
    if path=='/api/result-file':
     r,folder=getrun(q['run']);kind=q.get('kind','labels')
