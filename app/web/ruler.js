@@ -5,7 +5,7 @@ state.rulerMeasurement=null;
 
 const rulerButton=document.createElement('button');
 rulerButton.className='explore-tool-button';
-rulerButton.innerHTML='<span aria-hidden="true">⤡</span><span class="explore-tool-label"> Ruler</span>';
+rulerButton.innerHTML=viewIcon('ruler')+'<span class="explore-tool-label">Ruler</span>';
 rulerButton.title='Measure between two points in 2D or 3D. Click twice or drag; 3D endpoints snap to sampled signal in the active channel.';
 rulerButton.setAttribute('aria-label','Ruler tool');
 rulerButton.setAttribute('aria-pressed','false');
@@ -13,14 +13,14 @@ rulerButton.onclick=()=>{state.rulerEnabled=!state.rulerEnabled;rulerButton.setA
 
 const gridGuideButton=document.createElement('button');
 gridGuideButton.className='explore-tool-button';
-gridGuideButton.innerHTML='<span aria-hidden="true">▦</span><span class="explore-tool-label"> Grid</span>';
+gridGuideButton.innerHTML=viewIcon('grid')+'<span class="explore-tool-label">Grid</span>';
 gridGuideButton.setAttribute('aria-label','Toggle spatial grid');
 gridGuideButton.title='Show a spatial grid in 2D or on the 3D XY reference plane. Included in Save view.';
 gridGuideButton.onclick=()=>setExploreGuide('showGrid',!state.showGrid);
 
 const scaleGuideButton=document.createElement('button');
 scaleGuideButton.className='explore-tool-button';
-scaleGuideButton.innerHTML='<span aria-hidden="true">↔</span><span class="explore-tool-label"> Scale</span>';
+scaleGuideButton.innerHTML=viewIcon('scale')+'<span class="explore-tool-label">Scale</span>';
 scaleGuideButton.setAttribute('aria-label','Toggle scale bar');
 scaleGuideButton.title='Show a micrometer scale bar when image spacing is known. Included in Save view.';
 scaleGuideButton.onclick=()=>setExploreGuide('showScaleBar',!state.showScaleBar);
@@ -35,7 +35,8 @@ clearRulerButton.textContent='×';
 clearRulerButton.setAttribute('aria-label','Clear ruler');
 clearRulerButton.title='Clear the current ruler measurement';
 clearRulerButton.onclick=()=>{state.rulerMeasurement=null;refreshRulerUI();scheduleDraw()};
-for(const control of [rulerButton,gridGuideButton,scaleGuideButton,rulerReadout,clearRulerButton])$('#simple-toolbar').insertBefore(control,regionButton);
+viewTools.prepend(rulerButton,gridGuideButton,scaleGuideButton);
+viewTools.before(rulerReadout,clearRulerButton);
 
 function setExploreGuide(key,value){
  state[key]=value;

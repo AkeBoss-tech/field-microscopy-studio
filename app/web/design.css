@@ -1,23 +1,79 @@
 /* Wayfinding pass: one role color per workspace, one clear next action, compact viewing tools. Display only. */
 
-/* Each workspace tab keeps the role color of its icon when active. */
-body[data-workspace=explore] nav button.active{box-shadow:inset 0 -2px var(--source)}
-body[data-workspace=annotate] nav button.active{box-shadow:inset 0 -2px var(--prepare)}
+/* Effective design tokens. Earlier sheets define some of these more than once
+   (style → studio → polish → experiments); these are the values that win the cascade.
+   New presentation rules should use these names instead of raw hex values or !important.
+   Role colors: --source (blue, Explore/raw), --process (violet, Process), --candidate (amber, Review),
+   --prepare (mint, Annotate/preparation). Amber (--measure) also marks active measurement tools. */
+:root{--source:#87c7ff;--prepare:#96e6cd;--process:#b9a6ff;--candidate:#f2cd88;--measure:#e8bc69;
+ --surface:#182331;--surface-raised:#223245;--panel:#17212c;--context-bg:#132430;
+ --line:#a8c5de1c;--control-border:#a8c5de28;--control-radius:10px;--control-height:34px;
+ --muted:#afbdd0;--text-secondary:#a9bbcd;--focus-ring:#a7f2db;--accent:#78e4c5;--ease:cubic-bezier(.2,.8,.2,1)}
+
+/* Each workspace tab keeps the role color of its icon when active; a 3px bar and brighter label keep contrast on tinted backgrounds. */
+body[data-workspace=explore] nav button.active{box-shadow:inset 0 -3px var(--source)}
+body[data-workspace=process] nav button.active{box-shadow:inset 0 -3px var(--process)}
+body[data-workspace=review] nav button.active{box-shadow:inset 0 -3px var(--candidate)}
+body[data-workspace=annotate] nav button.active{box-shadow:inset 0 -3px var(--prepare)}
+nav button.active{color:#fff!important;font-weight:600}
 nav button:not(.active) .nav-icon{opacity:.72}
 
 /* Process: preview is the next step; a full run stays available but visually secondary. */
 .experiment-actions .run-full{background:#8ce6ca12!important;color:#b2f2dd!important;border-color:#8ce6ca5c!important;font-weight:600;box-shadow:none}
 .experiment-actions .run-full:hover:not(:disabled){background:#8ce6ca26!important;border-color:#8ce6ca99!important}
+/* Preview → Tune → Run is a live stepper; the matching actions carry the same step numbers. */
+.process-steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;padding:0;list-style:none;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.process-steps li{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;border-radius:999px;border:1px solid var(--line);color:var(--text-secondary)}
+.process-steps li span{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#ffffff14;font-size:9px;letter-spacing:0}
+.process-steps li[aria-current=step]{border-color:#b9a6ff8c;color:#e6defe;background:#b9a6ff1c}
+.process-steps li[aria-current=step] span{background:var(--process);color:#1b1530}
+.process-steps li.done span{background:#b9a6ff40;color:#e6defe}
+[data-step]::before{content:attr(data-step);display:inline-grid;place-items:center;width:17px;height:17px;margin-right:7px;border-radius:50%;font-size:10px;font-weight:700;background:#0003;vertical-align:1px}
 
 /* Result history: provenance badges stay on one line instead of wrapping in a narrow sidebar. */
 .run-badge{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Explore viewing tools share one compact style; labels return on wide screens. */
-.explore-tool-button{display:inline-flex;align-items:center;justify-content:center;gap:2px}
-.explore-tool-button>span[aria-hidden]{font-size:15px;line-height:1}
-@media(max-width:1680px){#simple-toolbar{gap:8px}
- .explore-tool-label{display:none}
- .explore-tool-button{min-width:36px;padding:7px 9px!important}
+/* Explore: the context line and labeled view tools share one row, so the data toolbar above stays short. */
+.context-row{display:flex;align-items:center;gap:8px;background:var(--context-bg);border-bottom:1px solid #92b4d126;padding-right:12px;min-width:0}
+.context-row #analysis-context{flex:1 1 auto;min-width:0;border-bottom:0;background:transparent}
+.context-row:has(.view-tools:not([hidden])) #analysis-context{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.view-tools{display:flex;align-items:center;gap:4px;flex:none;padding:4px 0}
+.view-tools .explore-tool-button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 10px;font-size:12px;white-space:nowrap;background:transparent;border-color:transparent;color:#d6e2ee}
+.view-tools .explore-tool-button:hover:not(:disabled){background:#ffffff0d;border-color:var(--control-border)}
+.view-tools .explore-tool-button:disabled{opacity:.45}
+.view-tools .tool-group-start{margin-left:9px;position:relative}
+.view-tools .tool-group-start::after{content:'';position:absolute;left:-7px;top:6px;bottom:6px;width:1px;background:var(--control-border)}
+.view-tools .explore-tool-label{display:inline}
+.view-tools .ui-icon{width:16px;height:16px;flex:none}
+.view-tools .save-view{border-color:var(--control-border);background:#ffffff08}
+.context-row .ruler-readout{flex:0 1 auto;width:auto;max-width:280px;min-width:0}
+.context-row:has(.view-tools:not([hidden])) #analysis-context{min-width:120px}
+.context-row .ruler-clear{min-height:26px}
+
+/* Data toolbar: one row down to 1100px. Visible labels stay; long selects give up width first. */
+@media(max-width:1360px){#simple-toolbar{gap:8px}
+ #simple-toolbar #channel{max-width:150px}
+ #simple-toolbar label select{max-width:130px}
+ #simple-toolbar .ui-dropdown>summary{padding-left:10px;padding-right:10px}
+}
+@media(max-width:1200px){#simple-toolbar{padding-left:16px;padding-right:16px}
+ #simple-toolbar #channel{max-width:128px}
+ #simple-toolbar .explore-projection select{max-width:100px}
+ #simple-toolbar label select{max-width:112px}
+ #simple-toolbar .mode-buttons button{padding-left:10px;padding-right:10px}
+ #simple-toolbar .ui-dropdown>summary{gap:8px}
+}
+
+/* Tablet/phone: toolbar menus are fixed sheets placed by polish.js, so they stay inside the viewport whether the row wraps or scrolls. */
+@media(max-width:900px){#simple-toolbar .ui-dropdown{position:static}
+ #simple-toolbar .dropdown-body{position:fixed;top:var(--toolbar-menu-top,140px);left:var(--toolbar-menu-left,8px);right:auto;max-height:calc(100dvh - var(--toolbar-menu-top,140px) - 12px);overflow:auto;box-sizing:border-box}
+}
+/* Phones: the context text takes its own line; view tools scroll sideways (they hold no popups, so nothing is clipped). */
+@media(max-width:650px){.context-row{flex-wrap:wrap;padding-right:0;row-gap:0}
+ .context-row #analysis-context{flex-basis:100%}
+ .context-row:has(.view-tools:not([hidden])) #analysis-context{white-space:normal}
+ .view-tools{flex:1 1 100%;overflow-x:auto;padding:0 8px 6px;scrollbar-width:none}
+ .context-row .ruler-readout{padding-left:12px;max-width:none;flex:1 1 auto}
 }
 
 /* Phones: two header rows instead of three, and the image before the result list in Explore. */
@@ -28,4 +84,17 @@ nav button:not(.active) .nav-icon{opacity:.72}
  header #dataset{order:3;flex:1 1 0;min-width:0}
  header .workspace-menu{order:4;margin-left:0}
  body[data-workspace=explore] #result-sidebar{order:1;border-bottom:0;border-top:1px solid #3a515f}
+ /* Data toolbar becomes one swipeable row with every label kept. Its menus open as viewport-anchored
+    sheets (position:fixed, top set by polish.js), so the scroll container cannot clip them. */
+ #simple-toolbar{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:8px;scrollbar-width:none;overscroll-behavior-x:contain}
+ #simple-toolbar::-webkit-scrollbar{display:none}
+ #simple-toolbar>*{flex:none}
+ #simple-toolbar[data-more-right]::after{content:'';position:sticky;right:-8px;flex:none;align-self:stretch;width:32px;margin:-8px -8px -8px -38px;background:linear-gradient(to right,#111c2700,#111c27);pointer-events:none}
+ #simple-toolbar .dropdown-body{left:8px;right:8px;width:auto;max-width:none}
+ #simple-toolbar .mode-buttons button{padding:6px 9px}
+ #simple-toolbar select{max-width:132px}
+ .view-tools .explore-tool-button{padding:5px 8px}
+ /* Annotation tools wrap instead of running off-screen; every tool, including Neurite, stays visible with its label. */
+ .floating-tools{flex-wrap:wrap;justify-content:center;white-space:normal;width:max-content;max-width:calc(100% - 16px);box-sizing:border-box;row-gap:2px}
+ .floating-tools .divider{display:none}
 }
