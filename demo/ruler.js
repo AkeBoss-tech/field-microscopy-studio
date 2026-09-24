@@ -5,7 +5,7 @@ state.rulerMeasurement=null;
 
 const rulerButton=document.createElement('button');
 rulerButton.className='explore-tool-button';
-rulerButton.innerHTML='<span aria-hidden="true">⌁</span><span class="explore-tool-label"> Ruler</span>';
+rulerButton.innerHTML='<span aria-hidden="true">⤡</span><span class="explore-tool-label"> Ruler</span>';
 rulerButton.title='Measure between two points in 2D or 3D. Click twice or drag; 3D endpoints snap to sampled signal in the active channel.';
 rulerButton.setAttribute('aria-label','Ruler tool');
 rulerButton.setAttribute('aria-pressed','false');

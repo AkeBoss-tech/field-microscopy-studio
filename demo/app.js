@@ -22,13 +22,13 @@ function navigation(v,key){
  const cam=cameras.get(key);v.camera=cam;
  for(const prop of ['zoom','pan'])Object.defineProperty(v,prop,{get:()=>cam[prop],set:value=>cam[prop]=value,configurable:true});
  const controls=document.createElement('div');controls.className='view-navigation';controls.setAttribute('aria-label','Image navigation');
- const button=(label,fn)=>{const b=document.createElement('button');b.textContent=label;b.onclick=fn;controls.append(b);return b};
- button('−',()=>zoomView(v,.8));const level=document.createElement('output');level.className='zoom-level';controls.append(level);button('+',()=>zoomView(v,1.25));button('Fit',()=>resetView(v));
+ const button=(label,fn,name)=>{const b=document.createElement('button');b.textContent=label;b.onclick=fn;if(name){b.setAttribute('aria-label',name);b.title=name}controls.append(b);return b};
+ button('−',()=>zoomView(v,.8),'Zoom out');const level=document.createElement('output');level.className='zoom-level';controls.append(level);button('+',()=>zoomView(v,1.25),'Zoom in');button('Fit',()=>resetView(v),'Fit image to view');
  if(v.dataset.kind==='volume'){
   for(const [name,yaw,pitch] of [['Top',0,0],['Front',0,Math.PI/2],['Side',90,0],['Oblique',35,.55]])button(name,()=>{cam.yaw=yaw;cam.pitch=pitch;sync();scheduleDraw()});
   const label=document.createElement('label');label.textContent='Tilt';const tilt=document.createElement('input');tilt.type='range';tilt.min=-90;tilt.max=90;tilt.value=cam.pitch*180/Math.PI;tilt.setAttribute('aria-label','3D tilt');tilt.oninput=()=>{cam.pitch=+tilt.value*Math.PI/180;scheduleDraw()};label.append(tilt);controls.append(label);
   v.syncTilt=()=>tilt.value=cam.pitch*180/Math.PI;
- }else button('1:1',()=>{const c=v.querySelector('canvas');v.zoom=1/Math.min(c.clientWidth/state.meta.shape[3],c.clientHeight/state.meta.shape[2]);v.pan=[0,0];scheduleDraw()});
+ }else button('1:1',()=>{const c=v.querySelector('canvas');v.zoom=1/Math.min(c.clientWidth/state.meta.shape[3],c.clientHeight/state.meta.shape[2]);v.pan=[0,0];scheduleDraw()},'Show one screen pixel per image pixel');
  const move=document.createElement('select');move.setAttribute('aria-label','Navigation gesture');move.innerHTML=v.dataset.kind==='volume'?'<option value="orbit">Drag: orbit</option><option value="pan">Drag: pan</option>':'<option value="pan">Drag: pan</option>';move.onchange=()=>v.dragMode=move.value;v.dragMode=move.value;controls.append(move);
  function sync(){if(v.syncTilt)v.syncTilt();level.textContent=Math.round((v.dataset.kind==='volume'?v.zoom:Math.min(v.clientWidth/state.meta.shape[3],v.clientHeight/state.meta.shape[2])*v.zoom)*100)+'%'}
  v.syncNavigation=sync;v.append(controls);sync();
