@@ -1,0 +1,128 @@
+{
+  "shape_zyx": [
+    12,
+    128,
+    128
+  ],
+  "body_count": 8,
+  "body_centers_zyx": [
+    {
+      "id": 1,
+      "center": [
+        3.0,
+        28.0,
+        26.0
+      ],
+      "radii_zyx": [
+        2.1807813094492676,
+        8.124470355269883,
+        7.423388118283873
+      ]
+    },
+    {
+      "id": 2,
+      "center": [
+        3.0,
+        28.0,
+        40.446245781779496
+      ],
+      "radii_zyx": [
+        2.478891772446898,
+        5.356391491688836,
+        7.522857663495618
+      ]
+    },
+    {
+      "id": 3,
+      "center": [
+        6.0,
+        28.0,
+        78.0
+      ],
+      "radii_zyx": [
+        2.4540930899024267,
+        6.693620689439024,
+        5.44961233338937
+      ]
+    },
+    {
+      "id": 4,
+      "center": [
+        6.0,
+        28.0,
+        88.73838327716915
+      ],
+      "radii_zyx": [
+        2.1392651821794657,
+        7.703928739686827,
+        5.788770943779783
+      ]
+    },
+    {
+      "id": 5,
+      "center": [
+        9.0,
+        59.0,
+        26.0
+      ],
+      "radii_zyx": [
+        2.3392457783637868,
+        8.970966510946372,
+        5.837941896025981
+      ]
+    },
+    {
+      "id": 6,
+      "center": [
+        9.0,
+        59.0,
+        37.22464200633312
+      ],
+      "radii_zyx": [
+        1.6032489054807872,
+        7.7956431409094,
+        5.886700110307141
+      ]
+    },
+    {
+      "id": 7,
+      "center": [
+        3.0,
+        59.0,
+        78.0
+      ],
+      "radii_zyx": [
+        1.8855339489213987,
+        8.816628128722053,
+        6.36175011041602
+      ]
+    },
+    {
+      "id": 8,
+      "center": [
+        3.0,
+        59.0,
+        90.62295772522221
+      ],
+      "radii_zyx": [
+        1.400290954378497,
+        7.624349406977615,
+        6.761207614806177
+      ]
+    }
+  ],
+  "neurite_graphs": [],
+  "challenge": "touching",
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 21,
+  "image": "cells_touching_3d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "d9ce47b364ae7359508e632db30a3ce7a04359e4c33d8bfb5466ae62780536ca",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}

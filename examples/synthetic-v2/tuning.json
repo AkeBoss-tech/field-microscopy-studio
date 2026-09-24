@@ -1,0 +1,339 @@
+{
+  "development_seeds": [
+    17,
+    31
+  ],
+  "holdout_seed": 53,
+  "source_sha256": {
+    "2D": "166d6a6475302a4c3a05eaee36481d3c9fd2a4de3a5a60c4017610bd9b762467",
+    "3D": "d9ce47b364ae7359508e632db30a3ce7a04359e4c33d8bfb5466ae62780536ca"
+  },
+  "objective": "Mean one-to-one body-instance F1 at IoU >= 0.3; count error breaks ties",
+  "warning": "Synthetic holdout is a software regression check, not real-cell validation.",
+  "dimensions": {
+    "2D": {
+      "selected_recipe": {
+        "method": "watershed",
+        "scope": "volume",
+        "units": "grid",
+        "sigma": 0.5,
+        "background": 0,
+        "threshold": 1.0,
+        "min_size": 15,
+        "min_final_size": 10,
+        "distance": 7
+      },
+      "development": {
+        "macro_f1": 1.0,
+        "mean_absolute_count_error": 0.0,
+        "scenes": [
+          {
+            "scene": "cells_isolated_2d@17",
+            "truth_count": 9,
+            "candidate_count": 9,
+            "count_error": 0,
+            "matched_iou_0_3": 9,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_touching_2d@18",
+            "truth_count": 10,
+            "candidate_count": 10,
+            "count_error": 0,
+            "matched_iou_0_3": 10,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_dim_2d@19",
+            "truth_count": 8,
+            "candidate_count": 8,
+            "count_error": 0,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "neurons_crossing_2d@20",
+            "truth_count": 5,
+            "candidate_count": 5,
+            "count_error": 0,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_isolated_2d@31",
+            "truth_count": 9,
+            "candidate_count": 9,
+            "count_error": 0,
+            "matched_iou_0_3": 9,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_touching_2d@32",
+            "truth_count": 10,
+            "candidate_count": 10,
+            "count_error": 0,
+            "matched_iou_0_3": 10,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_dim_2d@33",
+            "truth_count": 8,
+            "candidate_count": 8,
+            "count_error": 0,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "neurons_crossing_2d@34",
+            "truth_count": 5,
+            "candidate_count": 5,
+            "count_error": 0,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          }
+        ]
+      },
+      "holdout": {
+        "macro_f1": 1.0,
+        "mean_absolute_count_error": 0.0,
+        "scenes": [
+          {
+            "scene": "cells_isolated_2d@53",
+            "truth_count": 9,
+            "candidate_count": 9,
+            "count_error": 0,
+            "matched_iou_0_3": 9,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_touching_2d@54",
+            "truth_count": 10,
+            "candidate_count": 10,
+            "count_error": 0,
+            "matched_iou_0_3": 10,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_dim_2d@55",
+            "truth_count": 8,
+            "candidate_count": 8,
+            "count_error": 0,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "neurons_crossing_2d@56",
+            "truth_count": 5,
+            "candidate_count": 5,
+            "count_error": 0,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          }
+        ]
+      },
+      "baseline_recipe": {
+        "method": "watershed",
+        "scope": "volume",
+        "units": "grid",
+        "sigma": 0.5,
+        "background": 0,
+        "threshold": 1.0,
+        "min_size": 15,
+        "min_final_size": 10,
+        "distance": 5
+      },
+      "baseline_holdout": {
+        "macro_f1": 1.0,
+        "mean_absolute_count_error": 0.0,
+        "scenes": [
+          {
+            "scene": "cells_isolated_2d@53",
+            "truth_count": 9,
+            "candidate_count": 9,
+            "count_error": 0,
+            "matched_iou_0_3": 9,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_touching_2d@54",
+            "truth_count": 10,
+            "candidate_count": 10,
+            "count_error": 0,
+            "matched_iou_0_3": 10,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_dim_2d@55",
+            "truth_count": 8,
+            "candidate_count": 8,
+            "count_error": 0,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "neurons_crossing_2d@56",
+            "truth_count": 5,
+            "candidate_count": 5,
+            "count_error": 0,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          }
+        ]
+      }
+    },
+    "3D": {
+      "selected_recipe": {
+        "method": "watershed",
+        "scope": "volume",
+        "units": "grid",
+        "sigma": 0.5,
+        "background": 0,
+        "threshold": 1.0,
+        "min_size": 15,
+        "min_final_size": 10,
+        "distance": 7
+      },
+      "development": {
+        "macro_f1": 0.9852941176470589,
+        "mean_absolute_count_error": 0.25,
+        "scenes": [
+          {
+            "scene": "cells_touching_3d@21",
+            "truth_count": 8,
+            "candidate_count": 9,
+            "count_error": 1,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 0.8888888888888888,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 0.9411764705882353
+          },
+          {
+            "scene": "neurons_crossing_3d@22",
+            "truth_count": 5,
+            "candidate_count": 5,
+            "count_error": 0,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "cells_touching_3d@35",
+            "truth_count": 8,
+            "candidate_count": 8,
+            "count_error": 0,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "neurons_crossing_3d@36",
+            "truth_count": 5,
+            "candidate_count": 5,
+            "count_error": 0,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          }
+        ]
+      },
+      "holdout": {
+        "macro_f1": 0.9545454545454546,
+        "mean_absolute_count_error": 0.5,
+        "scenes": [
+          {
+            "scene": "cells_touching_3d@57",
+            "truth_count": 8,
+            "candidate_count": 8,
+            "count_error": 0,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 1.0,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 1.0
+          },
+          {
+            "scene": "neurons_crossing_3d@58",
+            "truth_count": 5,
+            "candidate_count": 6,
+            "count_error": 1,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 0.8333333333333334,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 0.9090909090909091
+          }
+        ]
+      },
+      "baseline_recipe": {
+        "method": "watershed",
+        "scope": "volume",
+        "units": "grid",
+        "sigma": 0.5,
+        "background": 0,
+        "threshold": 1.0,
+        "min_size": 15,
+        "min_final_size": 10,
+        "distance": 5
+      },
+      "baseline_holdout": {
+        "macro_f1": 0.7976190476190477,
+        "mean_absolute_count_error": 3.5,
+        "scenes": [
+          {
+            "scene": "cells_touching_3d@57",
+            "truth_count": 8,
+            "candidate_count": 13,
+            "count_error": 5,
+            "matched_iou_0_3": 8,
+            "precision_iou_0_3": 0.6153846153846154,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 0.761904761904762
+          },
+          {
+            "scene": "neurons_crossing_3d@58",
+            "truth_count": 5,
+            "candidate_count": 7,
+            "count_error": 2,
+            "matched_iou_0_3": 5,
+            "precision_iou_0_3": 0.7142857142857143,
+            "recall_iou_0_3": 1.0,
+            "f1_iou_0_3": 0.8333333333333333
+          }
+        ]
+      }
+    }
+  }
+}

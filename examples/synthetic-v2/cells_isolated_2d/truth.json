@@ -1,0 +1,141 @@
+{
+  "shape_zyx": [
+    1,
+    128,
+    128
+  ],
+  "body_count": 9,
+  "body_centers_zyx": [
+    {
+      "id": 1,
+      "center": [
+        0.0,
+        59.0,
+        69.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.380299171191606,
+        5.643892364676428
+      ]
+    },
+    {
+      "id": 2,
+      "center": [
+        0.0,
+        59.0,
+        52.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.472319766657085,
+        5.859767854247074
+      ]
+    },
+    {
+      "id": 3,
+      "center": [
+        0.0,
+        23.0,
+        87.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.712657996374434,
+        7.445372433995923
+      ]
+    },
+    {
+      "id": 4,
+      "center": [
+        0.0,
+        29.0,
+        22.0
+      ],
+      "radii_zyx": [
+        1.0,
+        5.061158626386846,
+        6.016163655170557
+      ]
+    },
+    {
+      "id": 5,
+      "center": [
+        0.0,
+        55.0,
+        17.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.991054723691907,
+        8.329384498002815
+      ]
+    },
+    {
+      "id": 6,
+      "center": [
+        0.0,
+        83.0,
+        31.0
+      ],
+      "radii_zyx": [
+        1.0,
+        7.270159252593778,
+        7.437360548180414
+      ]
+    },
+    {
+      "id": 7,
+      "center": [
+        0.0,
+        28.0,
+        59.0
+      ],
+      "radii_zyx": [
+        1.0,
+        5.659688854105583,
+        6.847831638135457
+      ]
+    },
+    {
+      "id": 8,
+      "center": [
+        0.0,
+        78.0,
+        100.0
+      ],
+      "radii_zyx": [
+        1.0,
+        8.67910272043305,
+        8.259696827476631
+      ]
+    },
+    {
+      "id": 9,
+      "center": [
+        0.0,
+        92.0,
+        70.0
+      ],
+      "radii_zyx": [
+        1.0,
+        6.395262218331698,
+        8.964262488165591
+      ]
+    }
+  ],
+  "neurite_graphs": [],
+  "challenge": "isolated",
+  "notes": "Procedural truth; crossings in a 2D projection do not establish neuron ownership.",
+  "seed": 17,
+  "image": "cells_isolated_2d.ome.tif",
+  "body_instances": "body_instances.tif",
+  "neurite_owners": null,
+  "style_reference_sha256": "166d6a6475302a4c3a05eaee36481d3c9fd2a4de3a5a60c4017610bd9b762467",
+  "simulated_spacing_xyz_um": [
+    1.0,
+    1.0,
+    2.0
+  ],
+  "calibration_note": "Illustrative simulated spacing; not measured from the reference image."
+}

@@ -6,6 +6,7 @@ text=(demo/'index.html').read_text().replace('href="/','href="./').replace('src=
 (demo/'index.html').write_text(text)
 shutil.copytree(root/'starter',demo/'starter',dirs_exist_ok=True)
 shutil.copytree(root/'examples'/'visual-point-examples',demo/'examples'/'visual-point-examples',dirs_exist_ok=True)
+shutil.copytree(root/'examples'/'synthetic-v2',demo/'examples'/'synthetic-v2',dirs_exist_ok=True)
 (demo/'python').mkdir(exist_ok=True)
 for name in ['server.py','catalog.py','persistence.py','review.py','processing.py','experiments.py','measurements.py']:shutil.copy2(root/'app'/name,demo/'python'/name)
 shutil.copy2(root/'browser_adapter.py',demo/'python/browser_adapter.py')

@@ -1,0 +1,55 @@
+{
+  "generator": "synthetic_benchmark.py",
+  "seed": 17,
+  "reference_2d": "TUBB3 source intensity statistics; source image not included",
+  "reference_3d": "public iMOP starter intensity statistics",
+  "style_reference_sha256": {
+    "2D": "166d6a6475302a4c3a05eaee36481d3c9fd2a4de3a5a60c4017610bd9b762467",
+    "3D": "d9ce47b364ae7359508e632db30a3ce7a04359e4c33d8bfb5466ae62780536ca"
+  },
+  "cases": [
+    {
+      "case": "cells_isolated_2d",
+      "dimension": "2D",
+      "challenge": "isolated",
+      "body_count": 9,
+      "path": "cells_isolated_2d"
+    },
+    {
+      "case": "cells_touching_2d",
+      "dimension": "2D",
+      "challenge": "touching",
+      "body_count": 10,
+      "path": "cells_touching_2d"
+    },
+    {
+      "case": "cells_dim_2d",
+      "dimension": "2D",
+      "challenge": "dim",
+      "body_count": 8,
+      "path": "cells_dim_2d"
+    },
+    {
+      "case": "neurons_crossing_2d",
+      "dimension": "2D",
+      "challenge": "crossing",
+      "body_count": 5,
+      "path": "neurons_crossing_2d"
+    },
+    {
+      "case": "cells_touching_3d",
+      "dimension": "3D",
+      "challenge": "touching",
+      "body_count": 8,
+      "path": "cells_touching_3d"
+    },
+    {
+      "case": "neurons_crossing_3d",
+      "dimension": "3D",
+      "challenge": "crossing",
+      "body_count": 5,
+      "path": "neurons_crossing_3d"
+    }
+  ],
+  "warning": "Synthetic performance is a regression check, not biological validation."
+}

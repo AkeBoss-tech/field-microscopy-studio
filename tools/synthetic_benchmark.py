@@ -305,7 +305,7 @@ def evaluate_suite(out: Path) -> list[dict]:
                             "interpretation": "intensity only; no count" if method == "preprocess" else "network components; not body counts" if method == "sato" else "body candidates",
                             **scores})
     with (out / "scores.csv").open("w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=list(results[0]))
+        writer = csv.DictWriter(file, fieldnames=list(results[0]), lineterminator="\n")
         writer.writeheader(); writer.writerows(results)
     return results
 

@@ -45,6 +45,8 @@ A/B comparisons use two current full-volume runs from the active image/channel, 
 
 For repeatable method checks, [generate a synthetic counting dataset](docs/synthetic-benchmark.md) with exact 2D/3D body truth and neurite ownership. The generator can set image intensity ranges from the supplied TUBB3 and iMOP neuron scans, then score the classical methods. Synthetic scores do not establish biological accuracy.
 
+[Download six validated procedural scenes and exact truth](examples/synthetic-v2/README.md) to reproduce the import, preview, run and review workflow. The hosted Space includes the same example files.
+
 [Visually reviewed point examples for both starter images](examples/visual-point-examples/README.md) include annotated PNGs, native-coordinate JSON and ImageJ ROI ZIPs. Their eight points confidently locate distinct bright structures on specified planes; they are not complete biological cell counts or validated neuron identities.
 
 ## Save behavior
