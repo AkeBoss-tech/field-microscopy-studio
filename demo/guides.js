@@ -2,7 +2,7 @@
 state.showGrid=false;state.showScaleBar=true;
 document.querySelector('[data-mode="volume"]').title='Smooth 3D overview from acquired planes. Use native 2D slices to judge exact cell boundaries.';
 const displayGuideBody=document.querySelector('.display-menu .dropdown-body');
-for(const [key,label,help] of [['showGrid','▦ Grid','Show a spatial grid in 2D or a bounding frame in 3D. Guides are included in Save view.'],['showScaleBar','↔ Scale bar','Show a calibrated micrometer scale when the source spacing is known. Guides are included in Save view.']]){
+for(const [key,label,help] of [['showGrid','▦ Grid','Show a spatial grid in 2D or on the 3D XY reference plane. Guides are included in Save view.'],['showScaleBar','↔ Scale bar','Show a calibrated micrometer scale when the source spacing is known. Guides are included in Save view.']]){
  const field=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=state[key];input.setAttribute('aria-label',label);input.onchange=()=>{state[key]=input.checked;scheduleDraw()};field.title=help;field.append(input,document.createTextNode(label));displayGuideBody.append(field);
 }
 function niceDistance(limit){if(limit<=0)return 1;const power=10**Math.floor(Math.log10(limit));return [5,2,1].map(n=>n*power).find(n=>n<=limit)||power}
@@ -15,7 +15,7 @@ function drawScale(ctx,w,h,pixelsPerUnit,unit){
  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+length,y);ctx.moveTo(x,y-5);ctx.lineTo(x,y+5);ctx.moveTo(x+length,y-5);ctx.lineTo(x+length,y+5);ctx.stroke();ctx.restore();
 }
 function drawGuides2D(ctx,w,h,s,ox,oy,iw,ih){
- const calibrated=state.meta?.calibrated!==false,[sx,sy]=state.meta.spacing;
+ const calibrated=state.meta?.calibrated===true,[sx,sy]=state.meta.spacing;
  if(state.showGrid){
   const unitX=calibrated?sx:1,unitY=calibrated?sy:1,step=niceDistance(95*unitX/s),xStep=step/unitX,yStep=step/unitY;
   ctx.save();ctx.beginPath();ctx.rect(ox,oy,iw*s,ih*s);ctx.clip();ctx.strokeStyle='#e8f8ff48';ctx.lineWidth=1;
@@ -26,11 +26,16 @@ function drawGuides2D(ctx,w,h,s,ox,oy,iw,ih){
  if(calibrated)drawScale(ctx,w,h,s/sx,'µm');
 }
 function drawGuides3D(ctx,w,h,project,bounds,scale){
- const [[x0,y0,z0],[x1,y1,z1]]=bounds,calibrated=state.meta?.calibrated!==false;
+ const [[x0,y0,z0],[x1,y1,z1]]=bounds,calibrated=state.meta?.calibrated===true;
  if(state.showGrid){
   const vertices=[[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]].map(p=>project(...p));
   ctx.save();ctx.lineWidth=1;ctx.strokeStyle='#d0e8fb72';ctx.fillStyle='#dcecf9';ctx.font='11px system-ui';
   for(const [a,b] of [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]){ctx.beginPath();ctx.moveTo(...vertices[a].slice(0,2));ctx.lineTo(...vertices[b].slice(0,2));ctx.stroke()}
+  const ux=calibrated?state.meta.spacing[0]:1,uy=calibrated?state.meta.spacing[1]:1,step=niceDistance(Math.max((x1-x0)*ux,(y1-y0)*uy)/7);
+  ctx.strokeStyle='#d0e8fb3c';
+  for(let x=Math.ceil(x0*ux/step)*step,n=0;x<x1*ux&&n<40;x+=step,n++){if(x<=x0*ux+1e-7)continue;const a=project(x/ux,y0,z0),b=project(x/ux,y1,z0);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+  for(let y=Math.ceil(y0*uy/step)*step,n=0;y<y1*uy&&n<40;y+=step,n++){if(y<=y0*uy+1e-7)continue;const a=project(x0,y/uy,z0),b=project(x1,y/uy,z0);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+  ctx.strokeStyle='#d0e8fb72';
   const unit=calibrated?'µm':'px';ctx.fillText('X '+((x1-x0)*(calibrated?state.meta.spacing[0]:1)).toFixed(0)+' '+unit,vertices[1][0]+5,vertices[1][1]);ctx.fillText('Y',vertices[3][0]+5,vertices[3][1]);ctx.fillText('Z',vertices[4][0]+5,vertices[4][1]);ctx.restore();
  }
  if(calibrated)drawScale(ctx,w,h,scale,'µm');
