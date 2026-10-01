@@ -212,3 +212,43 @@ async function refreshRunning(){
  for(const b of document.querySelectorAll('#result-list .result-button[data-result]')){const r=state.runs.find(run=>run.id===b.dataset.result),info=r&&methodInfo[r.method];if(!info)continue;
   const title=b.firstElementChild;if(title&&(!r.title||r.title===r.method))title.textContent=info[0];
   const glyph=expNode('span','result-glyph '+info[2],methodGlyphs[r.method]);b.prepend(glyph);b.classList.add('has-glyph');b.title=info[0]+' · '+algorithmNames[r.method]}}}
+
+// ---- Bundled example: assistant-curated IHC/OHC masks and points for the Control Mid-1 starter ----
+const hairExample={dataset:'hair-control',base:'examples/hair-control-ihc-ohc/',runs:[
+ {file:'ihc-labels.tif',algorithm:'Example · IHC (assistant-curated)',target:'Inner hair cells · Myo7a bodies'},
+ {file:'ohc-labels.tif',algorithm:'Example · OHC (assistant-curated)',target:'Outer hair cells · Myo7a bodies'}]};
+function exampleRuns(){return hairExample.runs.map(spec=>state.runs.find(r=>r.title===spec.algorithm)).filter(Boolean)}
+async function loadHairExample(button){
+ if(state.dirty&&!confirm('Save or discard your unsaved annotations first. Continue without them?'))return;
+ button.disabled=true;const note=button.parentElement.querySelector('.example-progress');
+ try{
+  const loaded=exampleRuns().map(r=>r.title);
+  for(const spec of hairExample.runs){
+   if(loaded.includes(spec.algorithm))continue;
+   note.textContent='Importing '+spec.target.split(' · ')[0].toLowerCase()+'…';
+   const blob=await (await fetch(hairExample.base+spec.file)).blob();
+   const response=await fetch('/api/import-labels?'+query({dataset:hairExample.dataset,channel:0,name:spec.file,axes:'ZYX',algorithm:spec.algorithm,target:spec.target,alignment_confirmed:'yes'}),{method:'POST',headers:{'Content-Type':'application/octet-stream','X-Studio-Request':'1'},body:blob});
+   const result=await response.json();if(!response.ok)throw Error(result.error||'Import failed');
+  }
+  note.textContent='Adding labelled points…';
+  const example=await (await fetch(hairExample.base+'annotations.json')).json(),current=await api('/api/annotations?'+query({dataset:hairExample.dataset}));
+  const existing=new Set(current.items.map(it=>it.label));
+  const items=[...current.items,...example.items.filter(it=>!existing.has(it.label))];
+  if(items.length>current.items.length)await api('/api/annotations',{dataset:hairExample.dataset,base_revision:current.revision,author:'Example (assistant-curated)',items});
+  await loadAnnotations();await loadRuns();
+  const ohc=exampleRuns().find(r=>/OHC/.test(r.title));if(ohc)chooseResult(ohc.id);
+  state.tab='Review';renderLayout();
+  status(`Loaded example: ${example.ihc} IHC + ${example.ohc} OHC masks and points · assistant-curated, not expert-validated`);
+ }catch(error){note.textContent=error.message;button.disabled=false}
+}
+{const exampleCatalog=resultCatalog;resultCatalog=function(){exampleCatalog();
+ if(state.dataset!==hairExample.dataset)return;
+ const card=document.createElement('section');card.className='example-card';
+ const loaded=exampleRuns();
+ card.innerHTML='<p class="example-kicker">Example</p><h4>IHC &amp; OHC segmentation</h4><p>21 inner and 69 outer hair cells outlined in 3D, with labelled points. Shows what a correct run should look like.</p>';
+ const fine=document.createElement('p');fine.className='example-fine';fine.textContent='Assistant-curated from Myo7a (C1). Not expert-validated.';
+ const progress=document.createElement('p');progress.className='example-progress';progress.setAttribute('role','status');
+ if(loaded.length===hairExample.runs.length){const row=document.createElement('div');row.className='example-actions';for(const r of loaded){const b=expButton(/IHC/.test(r.title)?'Open IHC':'Open OHC','',()=>{chooseResult(r.id);state.tab='Review';renderLayout()});row.append(b)}card.append(row)}
+ else{const b=expButton('Load example','primary-action',()=>loadHairExample(b));card.append(b)}
+ const docs=document.createElement('a');docs.href=hairExample.base+'overview.png';docs.target='_blank';docs.rel='noopener';docs.textContent='Overview image';
+ card.append(fine,progress,docs);$('#result-list').append(card)}}

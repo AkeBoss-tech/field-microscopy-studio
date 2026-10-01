@@ -1,0 +1,1370 @@
+{
+ "dataset": "hair-control",
+ "source_sha256": "eca25859d99493c0b7796b1f1c4fdabfa10994ff83e60558791cd616dc821c74",
+ "channel_0based": 0,
+ "channel_meaning": "Myo7a (presumed C1; confirm with the lab)",
+ "ihc": 21,
+ "ohc": 69,
+ "ohc_rows": {
+  "1": 23,
+  "2": 22,
+  "3": 24
+ },
+ "edge_cells": {
+  "IHC": 2,
+  "OHC": 4
+ },
+ "author": "Assistant-curated example (not expert-validated)",
+ "items": [
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 28,
+   "points": [
+    [
+     12.0,
+     545.0,
+     28.0
+    ]
+   ],
+   "label": "IHC 1 \u00b7 edge",
+   "status": "uncertain"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 27,
+   "points": [
+    [
+     52.0,
+     545.0,
+     27.0
+    ]
+   ],
+   "label": "IHC 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 25,
+   "points": [
+    [
+     100.0,
+     532.0,
+     25.0
+    ]
+   ],
+   "label": "IHC 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 27,
+   "points": [
+    [
+     152.0,
+     532.0,
+     27.0
+    ]
+   ],
+   "label": "IHC 4",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 27,
+   "points": [
+    [
+     205.0,
+     522.0,
+     27.0
+    ]
+   ],
+   "label": "IHC 5",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 28,
+   "points": [
+    [
+     255.0,
+     527.0,
+     28.0
+    ]
+   ],
+   "label": "IHC 6",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 25,
+   "points": [
+    [
+     305.0,
+     527.0,
+     25.0
+    ]
+   ],
+   "label": "IHC 7",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     357.0,
+     530.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 8",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 28,
+   "points": [
+    [
+     405.0,
+     527.0,
+     28.0
+    ]
+   ],
+   "label": "IHC 9",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 25,
+   "points": [
+    [
+     455.0,
+     527.0,
+     25.0
+    ]
+   ],
+   "label": "IHC 10",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 28,
+   "points": [
+    [
+     505.0,
+     522.0,
+     28.0
+    ]
+   ],
+   "label": "IHC 11",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 24,
+   "points": [
+    [
+     554.0,
+     525.0,
+     24.0
+    ]
+   ],
+   "label": "IHC 12",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     604.0,
+     530.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 13",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     654.0,
+     527.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 14",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 28,
+   "points": [
+    [
+     704.0,
+     527.0,
+     28.0
+    ]
+   ],
+   "label": "IHC 15",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     754.0,
+     527.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 16",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 27,
+   "points": [
+    [
+     806.0,
+     532.0,
+     27.0
+    ]
+   ],
+   "label": "IHC 17",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     856.0,
+     537.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 18",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     909.0,
+     542.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 19",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 26,
+   "points": [
+    [
+     961.0,
+     545.0,
+     26.0
+    ]
+   ],
+   "label": "IHC 20",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 27,
+   "points": [
+    [
+     1009.0,
+     550.0,
+     27.0
+    ]
+   ],
+   "label": "IHC 21 \u00b7 edge",
+   "status": "uncertain"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     0.0,
+     418.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 1 \u00b7 row 1 \u00b7 edge",
+   "status": "uncertain"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     37.0,
+     406.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 2 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     83.0,
+     402.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 3 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     128.0,
+     399.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 4 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 29,
+   "points": [
+    [
+     178.0,
+     391.0,
+     29.0
+    ]
+   ],
+   "label": "OHC 5 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     222.0,
+     396.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 6 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     266.0,
+     387.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 7 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     315.0,
+     390.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 8 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     361.0,
+     385.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 9 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     412.0,
+     397.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 10 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     452.0,
+     388.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 11 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     499.0,
+     393.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 12 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     548.0,
+     394.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 13 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     589.0,
+     393.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 14 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     635.0,
+     398.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 15 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     683.0,
+     398.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 16 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     723.0,
+     402.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 17 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 29,
+   "points": [
+    [
+     779.0,
+     394.0,
+     29.0
+    ]
+   ],
+   "label": "OHC 18 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     826.0,
+     396.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 19 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     874.0,
+     404.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 20 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     920.0,
+     406.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 21 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     970.0,
+     407.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 22 \u00b7 row 1",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     1008.0,
+     416.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 23 \u00b7 row 1 \u00b7 edge",
+   "status": "uncertain"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     10.0,
+     361.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 24 \u00b7 row 2 \u00b7 edge",
+   "status": "uncertain"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     57.0,
+     353.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 25 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     104.0,
+     352.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 26 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     149.0,
+     348.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 27 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     197.0,
+     346.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 28 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     243.0,
+     344.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 29 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     284.0,
+     340.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 30 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     336.0,
+     344.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 31 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     382.0,
+     341.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 32 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     434.0,
+     337.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 33 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     475.0,
+     336.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 34 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     524.0,
+     342.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 35 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     571.0,
+     345.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 36 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     616.0,
+     342.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 37 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     651.0,
+     346.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 38 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     705.0,
+     350.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 39 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 30,
+   "points": [
+    [
+     752.0,
+     349.0,
+     30.0
+    ]
+   ],
+   "label": "OHC 40 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     810.0,
+     362.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 41 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     853.0,
+     358.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 42 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     904.0,
+     360.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 43 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     948.0,
+     359.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 44 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     999.0,
+     363.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 45 \u00b7 row 2",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     29.0,
+     319.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 46 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     70.0,
+     313.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 47 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     118.0,
+     309.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 48 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     170.0,
+     302.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 49 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     216.0,
+     304.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 50 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     254.0,
+     308.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 51 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     309.0,
+     300.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 52 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     352.0,
+     299.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 53 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     401.0,
+     294.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 54 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     450.0,
+     293.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 55 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     497.0,
+     301.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 56 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     541.0,
+     306.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 57 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     588.0,
+     302.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 58 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     632.0,
+     302.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 59 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     678.0,
+     305.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 60 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     721.0,
+     307.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 61 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     757.0,
+     303.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 62 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     781.0,
+     322.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 63 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 31,
+   "points": [
+    [
+     795.0,
+     288.0,
+     31.0
+    ]
+   ],
+   "label": "OHC 64 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     829.0,
+     318.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 65 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     886.0,
+     316.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 66 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     924.0,
+     323.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 67 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 33,
+   "points": [
+    [
+     980.0,
+     320.0,
+     33.0
+    ]
+   ],
+   "label": "OHC 68 \u00b7 row 3",
+   "status": "unreviewed"
+  },
+  {
+   "type": "point",
+   "domain": "volume",
+   "channel": 0,
+   "z": 32,
+   "points": [
+    [
+     1023.0,
+     335.0,
+     32.0
+    ]
+   ],
+   "label": "OHC 69 \u00b7 row 3 \u00b7 edge",
+   "status": "uncertain"
+  }
+ ]
+}

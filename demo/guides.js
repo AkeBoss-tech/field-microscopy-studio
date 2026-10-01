@@ -81,8 +81,9 @@ function drawGuides3D(ctx,w,h,project,bounds,scale){
     ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(p[0]+ox*5,p[1]+oy*5);ctx.stroke();
     ctx.fillText(String(Math.round(u*100)/100),p[0]+ox*13,p[1]+oy*13);
    }
-   const end=best.b,title=names[axis]+' ('+box.unit+')';ctx.fillStyle=colors[axis];ctx.font='600 11px ui-sans-serif,system-ui';
-   ctx.fillText(title,end[0]+ox*30+(best.b[0]-best.a[0])/best.length*12,end[1]+oy*30+(best.b[1]-best.a[1])/best.length*12);ctx.font='11px ui-sans-serif,system-ui';
+   // Axis title beside the middle of its edge, outside the tick labels, so titles of adjacent axes never collide.
+   const title=names[axis]+' ('+box.unit+')';ctx.fillStyle=colors[axis];ctx.font='600 11px ui-sans-serif,system-ui';
+   ctx.fillText(title,best.mid[0]+ox*42,best.mid[1]+oy*42);ctx.font='11px ui-sans-serif,system-ui';
   }
   ctx.restore();
  }

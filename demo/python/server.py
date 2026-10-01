@@ -4,7 +4,7 @@ import base64, csv, hashlib, io, json, os, sys, threading, time, traceback, uuid
 if __name__ == "__main__": sys.modules["server"] = sys.modules[__name__]
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import unquote, urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import xml.etree.ElementTree as ET
@@ -431,6 +431,12 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(base.read_bytes(),ctype='application/octet-stream')
    if path.count('/')==1 and path.endswith(('.js','.css')) and (WEB/path[1:]).is_file():
     return self.send((WEB/path[1:]).read_bytes(),ctype='application/javascript' if path.endswith('.js') else 'text/css')
+   if path.startswith('/examples/'):
+    # Bundled example files (the static demo serves the same paths directly).
+    base=(ROOT/'examples').resolve();target=(ROOT/unquote(path[1:])).resolve()
+    types={'.tif':'image/tiff','.json':'application/json','.png':'image/png','.csv':'text/csv','.md':'text/markdown','.zip':'application/zip'}
+    if base in target.parents and target.is_file() and target.suffix in types:return self.send(target.read_bytes(),ctype=types[target.suffix])
+    raise ValueError('Unknown example file')
    files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/simple.js':'simple.js','/studio.js':'studio.js','/studio.css':'studio.css'}
    if path in files:return self.send((WEB/files[path]).read_bytes(),ctype={'/':'text/html','/app.js':'application/javascript','/style.css':'text/css','/simple.js':'application/javascript','/studio.js':'application/javascript','/studio.css':'text/css'}[path])
    self.send({'error':'Not found'},404)
