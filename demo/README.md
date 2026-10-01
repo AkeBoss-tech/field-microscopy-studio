@@ -72,6 +72,8 @@ The static demo computes on the visitor’s device. The optional server uses a s
 - **Manual reference counts.** The hair-cell starter is linked to the lab's Set1 manual counts ([`examples/reference-counts/set1-manual-counts.json`](examples/reference-counts/set1-manual-counts.json)). Review → Candidates shows them next to each run's candidate count. A matching total does not mean the same cells were found.
 - **Load example** (hair-cell starter) imports an assistant-curated IHC/OHC segmentation; see [its README](examples/hair-control-ihc-ohc/README.md). It is not expert-validated.
 - **Process → Auto-preview** re-runs the crop preview after a setting changes.
+- **Cell numbers.** Each detected candidate's ID is drawn in 2D, 3D and Review's XY planes (Display → *# Cell numbers*). In the single-cell 3D view, *Label neighbouring cells* names the surrounding candidates. In slices and Review, only candidates present on the current plane are labelled. Labels that would overlap are skipped.
+- **How this works** (toolbar, Process and Review) walks through each workspace. Each walkthrough also starts once on the first visit.
 - `tests/ui/smoke.cjs` is a Playwright check of these flows against a running server.
 
 ## Local run

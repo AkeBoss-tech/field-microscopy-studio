@@ -9,7 +9,7 @@ const checks=[];const check=(name,ok,detail='')=>{checks.push({name,ok,detail});
  const browser=await chromium.launch({args:['--ignore-gpu-blocklist','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const context=await browser.newContext({viewport:{width:1440,height:900},acceptDownloads:true});
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.addInitScript(()=>{try{localStorage.setItem('field-tour-done','1')}catch{}});
+ await page.addInitScript(()=>{try{for(const k of ['field-tour-done','field-tour-process','field-tour-review'])localStorage.setItem(k,'1')}catch{}});
  await page.goto(base);await page.waitForFunction(()=>typeof state!=='undefined'&&state.meta,null,{timeout:60000});
  const js=(f,a)=>page.evaluate(f,a),wait=ms=>page.waitForTimeout(ms);
  await js(()=>{const s=document.querySelector('#dataset');s.value='hair-control';s.dispatchEvent(new Event('change'))});await wait(3000);
@@ -29,6 +29,7 @@ const checks=[];const check=(name,ok,detail='')=>{checks.push({name,ok,detail});
  await js(()=>document.querySelector('.results-edge').click());await wait(600);check('results panel reopens',await js(()=>!document.body.classList.contains('sidebar-collapsed')));
  await js(()=>openIsolatedCell({id:34}));await wait(6000);
  check('cell navigator',/Cell #34/.test(await js(()=>document.querySelector('.cell-navigator')?.innerText||'')));
+ check('neighbour labels toggle',await js(()=>!!document.querySelector('.cell-navigator [data-cell-labels]')));
  // High-resolution export with metadata.
  await js(()=>{exportPrefs.scale=2;exportPrefs.caption=true});
  await page.click('.tool-rail .save-view');await page.waitForSelector('.export-dialog');
@@ -39,6 +40,9 @@ const checks=[];const check=(name,ok,detail='')=>{checks.push({name,ok,detail});
  // Share link round-trip.
  const link=await js(()=>location.origin+location.pathname+'#view='+encodeView());
  const page2=await context.newPage();await page2.goto(link);await page2.waitForFunction(()=>typeof state!=='undefined'&&state.focusObject?.id===34,null,{timeout:60000}).then(()=>check('share link reopens cell #34',true)).catch(()=>check('share link reopens cell #34',false));
+ await js(()=>{state.focusObject=null;state.tab='Review';renderLayout()});await wait(2500);
+ await js(()=>openWorkspaceGuide());await wait(1200);check('review walkthrough',/Review · 1 of/i.test(await js(()=>document.querySelector('.tour-step')?.textContent||'')));
+ await js(()=>document.querySelector('.tour-layer')?.remove());
  check('no page errors',!errors.length,errors.join(' | '));
  await browser.close();
  fs.writeFileSync(path.join(out,'smoke.json'),JSON.stringify(checks,null,1));

@@ -398,3 +398,21 @@ body.sidebar-collapsed .results-edge{transform:translate(0,-50%)}
 #result-sidebar{transition:width .38s var(--out),opacity .25s,padding .38s var(--out),border-color .3s,flex-basis .38s var(--out)!important}
 body.sidebar-collapsed #result-sidebar{flex-basis:0!important;min-width:0!important}
 @media(max-width:800px){.results-edge{display:none!important}}
+.guide-button{min-height:0!important;padding:6px 12px!important;border-radius:10px!important;background:var(--accent-soft)!important;color:#dfe9ff!important;border-color:#7aa7ff40!important}
+#simple-toolbar .comparison-launch{margin-left:0}
+#simple-toolbar .guide-button{margin-left:auto}
+
+/* Toolbar fits one row at laptop widths: short visible names, full names stay in aria-labels. */
+@media(max-width:1680px){
+ #simple-toolbar .intensity-control,#simple-toolbar .mask-control,#simple-toolbar .mask-opacity,#simple-toolbar .explore-projection{font-size:0;gap:6px}
+ #simple-toolbar .intensity-control select,#simple-toolbar .mask-control select,#simple-toolbar .explore-projection select{font-size:12px}
+ #simple-toolbar .intensity-control::before{content:'Layer';font-size:12px}
+ #simple-toolbar .mask-control::before{content:'Overlay';font-size:12px}
+ #simple-toolbar .mask-opacity::before{content:'Opacity';font-size:12px}
+ #simple-toolbar .explore-projection::before{content:'Z';font-size:12px}
+ #simple-toolbar .mask-opacity input{width:72px}
+ #simple-toolbar #channel{max-width:150px}
+ #simple-toolbar .intensity-control select{max-width:140px}
+ #simple-toolbar .comparison-launch{padding-left:10px;padding-right:10px}
+}
+@media(max-width:1380px){#simple-toolbar .results-toggle span{display:none}#simple-toolbar .comparison-launch{font-size:0}#simple-toolbar .comparison-launch::before{content:'A/B';font-size:12px}}

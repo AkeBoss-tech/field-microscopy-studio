@@ -266,3 +266,114 @@ new MutationObserver(()=>document.querySelectorAll('.results-count').forEach(b=>
 document.addEventListener('keydown',e=>{if(e.key==='['&&!e.metaKey&&!e.ctrlKey&&!e.target.closest('input,textarea,select,[contenteditable]')){e.preventDefault();setResultsPanel(document.body.classList.contains('sidebar-collapsed'))}});
 resultsToggle.setAttribute('aria-pressed',String(!document.body.classList.contains('sidebar-collapsed')));
 shortcutGroups[0][1].push(['[','Show or hide the results panel']);
+
+// ---- Cell numbers on detected candidates (2D, 3D, single-cell neighbours and Review planes) ----
+state.cellLabels=(()=>{try{return localStorage.getItem('field-cell-labels')!=='off'}catch{return true}})();
+function setCellLabels(on){state.cellLabels=on;try{localStorage.setItem('field-cell-labels',on?'on':'off')}catch{}document.querySelectorAll('[data-cell-labels]').forEach(i=>i.checked=on);scheduleDraw();if(state.tab==='Review')drawReviewCanvases()}
+const readyIndexes=new Map();
+function readyIndex(run){
+ if(!run)return null;if(readyIndexes.has(run))return readyIndexes.get(run);
+ readyIndexes.set(run,null);objectIndex(run).then(d=>{readyIndexes.set(run,d);scheduleDraw();if(state.tab==='Review')drawReviewCanvases()}).catch(()=>readyIndexes.delete(run));return null;
+}
+// Corrections renumber or reshape objects: forget cached positions whenever runs reload.
+{const labelLoadRuns=loadRuns;loadRuns=async function(){readyIndexes.clear();objectIndexCache.clear();return labelLoadRuns()}}
+function labelRunFor(v){
+ if(state.focusObject)return state.focusObject.run;
+ const id=v.overrideRun!==undefined?v.overrideRun:state.run,r=state.runs.find(r=>r.id===id);
+ return r&&!r.historical&&r.scope==='volume'&&r.method!=='preprocess'&&!v.raw&&state.overlay!=='none'?r.id:null;
+}
+function paintLabels(ctx,items,limit=600){
+ // Greedy placement: earlier items win; overlapping labels are skipped instead of stacking.
+ const placed=[];let drawn=0;ctx.save();ctx.font='600 10.5px ui-sans-serif,system-ui,-apple-system';ctx.textAlign='center';ctx.textBaseline='middle';
+ for(const it of items){
+  if(drawn>=limit)break;const text='#'+it.id,w=ctx.measureText(text).width+8,h=15,box=[it.x-w/2,it.y-h/2,it.x+w/2,it.y+h/2];
+  if(placed.some(b=>box[0]<b[2]&&box[2]>b[0]&&box[1]<b[3]&&box[3]>b[1]))continue;placed.push(box);drawn++;
+  ctx.fillStyle=it.dim?'#0b0f14b8':'#0b0f14d9';ctx.beginPath();ctx.roundRect(box[0],box[1],w,h,5);ctx.fill();
+  ctx.strokeStyle=it.dim?'#ffffff1f':'#ffffff38';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle=it.dim?'#b7c0ca':'#f1f4f7';ctx.fillText(text,it.x,it.y+.5);
+ }
+ ctx.restore();return drawn;
+}
+function drawCellLabels(v){
+ if(!state.cellLabels||state.tab!=='Explore')return;const run=labelRunFor(v),index=readyIndex(run);if(!index)return;
+ const c=v.querySelector('canvas'),ctx=c.getContext('2d');ctx.save();ctx.setTransform(c.width/c.clientWidth,0,0,c.height/c.clientHeight,0,0);
+ let items=[];
+ if(v.dataset.kind==='volume'&&v.project&&v.bounds3d){
+  const [[x0,y0,z0],[x1,y1,z1]]=v.bounds3d,clip=clipFor(v.bounds3d),at=(a,t)=>v.bounds3d[0][a]+t*(v.bounds3d[1][a]-v.bounds3d[0][a]);
+  const lo=clip?[at(0,clip.x[0]),at(1,clip.y[0]),at(2,clip.z[0])]:[x0,y0,z0],hi=clip?[at(0,clip.x[1]),at(1,clip.y[1]),at(2,clip.z[1])]:[x1,y1,z1];
+  for(const o of index.objects){
+   if(state.focusObject&&(o.id===state.focusObject.id||state.focusView.neighbors==='isolate'))continue;
+   const [cx,cy,cz]=o.center;if(cx<lo[0]||cx>hi[0]||cy<lo[1]||cy>hi[1]||cz<lo[2]||cz>hi[2])continue;
+   const p=v.project(cx,cy,cz);items.push({x:p[0],y:p[1],depth:p[2],id:o.id,dim:!!state.focusObject})}
+  items.sort((a,b)=>b.depth-a.depth);
+ }else if(v.transform){
+  const t=v.transform,w=c.clientWidth,h=c.clientHeight;
+  for(const o of index.objects){
+   const [[,,za],[,,zb]]=o.bounds_native;if(v.dataset.kind==='slice'&&(state.z<za||state.z>=zb))continue;
+   const x=t.ox+o.center[0]*t.s,y=t.oy+o.center[1]*t.s;if(x<-10||y<-10||x>w+10||y>h+10)continue;items.push({x,y,id:o.id})}
+ }
+ paintLabels(ctx,items);ctx.restore();
+}
+{const labelDraw=draw;draw=async function(v){const expected=(v.ticket||0)+1;await labelDraw(v);if(v.isConnected&&v.ticket===expected)drawCellLabels(v)}}
+{const labelReview=drawReviewCanvases;drawReviewCanvases=function(){
+ labelReview();if(!state.cellLabels)return;const data=reviewState.data,host=reviewState.host,index=readyIndex(state.run);if(!data||!index||!host?.isConnected)return;
+ for(const frame of host.querySelectorAll('.review-plane')){
+  const axis=frame.dataset.axis;if(axis!=='xy'&&axis!=='raw')continue;const c=frame.querySelector('canvas'),t=c.reviewTransform;if(!t)continue;
+  const ctx=c.getContext('2d');ctx.save();ctx.setTransform(c.width/c.clientWidth,0,0,c.height/c.clientHeight,0,0);ctx.beginPath();ctx.rect(t.x,t.y,t.width*t.sx,t.height*t.sy);ctx.clip();
+  const z=data.cursor[2],items=index.objects.filter(o=>z>=o.bounds_native[0][2]&&z<o.bounds_native[1][2]).map(o=>({x:t.x+(o.center[0]+.5)*t.sx,y:t.y+(o.center[1]+.5)*t.sy,id:o.id,dim:axis==='raw'}));
+  paintLabels(ctx,items);ctx.restore();
+ }}}
+// Toggles: Display menu (main viewers) and the cell navigator (neighbours).
+{const body=document.querySelector('.display-menu .dropdown-body');if(body){const field=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.dataset.cellLabels='';input.checked=state.cellLabels;input.onchange=()=>setCellLabels(input.checked);field.title='Show each detected candidate’s ID in 2D, 3D and Review';field.append(input,document.createTextNode('# Cell numbers'));body.append(field)}}
+{const labelNavigator=cellNavigator;cellNavigator=function(v){const card=labelNavigator(v);const field=document.createElement('label');field.className='render-check';const input=document.createElement('input');input.type='checkbox';input.dataset.cellLabels='';input.checked=state.cellLabels;input.onchange=()=>setCellLabels(input.checked);field.append(input,document.createTextNode('Label neighbouring cells'));field.title='Show the ID of each surrounding candidate';const heading=[...card.querySelectorAll('.float-card-label')].find(el=>/Nearest/.test(el.textContent));(heading||card.querySelector('.neighbor-chips'))?.before(field);return card}}
+
+// ---- Workspace walkthroughs: Process and Review open with a short guided flow the first time ----
+function runTour(steps,key,i=0){
+ document.querySelector('.tour-layer')?.remove();
+ if(i>=steps.length){try{localStorage.setItem(key,'1')}catch{}return}
+ const step=steps[i];step.prep?.();
+ const show=()=>{
+  const target=document.querySelector(step.target);if(!target||!target.offsetWidth)return runTour(steps,key,i+1);
+  target.scrollIntoView({block:'nearest'});
+  const r=target.getBoundingClientRect(),layer=expNode('div','tour-layer'),spot=expNode('div','tour-spot'),card=expNode('div','tour-card');
+  const spotTop=Math.max(4,r.top-6),spotBottom=Math.min(innerHeight-4,r.bottom+6);
+  Object.assign(spot.style,{left:r.left-6+'px',top:spotTop+'px',width:r.width+12+'px',height:Math.max(20,spotBottom-spotTop)+'px'});
+  card.append(expNode('span','tour-step',`${step.section||'Guide'} · ${i+1} of ${steps.length}`),expNode('h3','',step.title),expNode('p','',step.text));
+  const actions=expNode('div','tour-actions');actions.append(expButton('Skip','',()=>runTour(steps,key,steps.length)));if(i)actions.append(expButton('Back','',()=>runTour(steps,key,i-1)));actions.append(expButton(i===steps.length-1?'Done':'Next','primary-action',()=>runTour(steps,key,i+1)));card.append(actions);
+  layer.append(spot,card);document.body.append(layer);
+  const w=320,h=card.offsetHeight,space={below:innerHeight-r.bottom,above:r.top,right:innerWidth-r.right,left:r.left};
+  let left,top;
+  if(space.below>h+24){top=r.bottom+16;left=r.left+r.width/2-w/2}else if(space.above>h+24){top=r.top-16-h;left=r.left+r.width/2-w/2}
+  else if(space.left>w+24){left=r.left-16-w;top=r.top+r.height/2-h/2}else{left=r.right+16;top=r.top+r.height/2-h/2}
+  Object.assign(card.style,{left:Math.max(12,Math.min(innerWidth-w-12,left))+'px',top:Math.max(12,Math.min(innerHeight-h-12,top))+'px'});
+  card.querySelector('.primary-action').focus();
+  // Panels may still be animating open; follow the target once it settles.
+  setTimeout(()=>{if(!spot.isConnected)return;const q=target.getBoundingClientRect(),t=Math.max(4,q.top-6),b=Math.min(innerHeight-4,q.bottom+6);Object.assign(spot.style,{left:q.left-6+'px',top:t+'px',width:q.width+12+'px',height:Math.max(20,b-t)+'px'});if(q.width>r.width+40&&parseFloat(card.style.left)<q.right)card.style.left=Math.min(innerWidth-332,q.right+16)+'px'},420);
+  layer.addEventListener('keydown',e=>{if(e.key==='Escape')runTour(steps,key,steps.length);if(e.key==='ArrowRight')runTour(steps,key,i+1);if(e.key==='ArrowLeft'&&i)runTour(steps,key,i-1)});
+ };
+ step.prep?setTimeout(show,450):show();
+}
+startTour=(i=0)=>runTour(tourSteps.map(([target,title,text])=>target==='#result-list'?{target:'#result-sidebar',title,text,section:'Studio',prep:()=>setResultsPanel(true)}:{target,title,text,section:'Studio'}),'field-tour-done',i);
+const processTour=[
+ {target:'.process-steps',title:'Preview → Tune → Run',text:'Process works in three steps: try a recipe on a small crop, adjust it until the outlines look right, then run it on the whole stack. Nothing is saved until the full run.'},
+ {target:'#task-panel .algo-overview',title:'Pick an algorithm',text:'Connected regions (Otsu) for well-separated bright cells, Separate candidates (watershed) to split touching cells, Ridge networks (Sato) for neurites, Prepare intensity to clean the signal first. The active card is highlighted.'},
+ {target:'#task-panel .algo-pipeline-box',title:'What will run',text:'The pipeline lists every step with its current setting; greyed steps are off. Click any step, or Edit, to change it.'},
+ {target:'#task-panel .experiment-actions',title:'Preview, then run',text:'Choose preview region picks the crop. Preview this region shows source, processed and candidate outlines side by side. Run full volume saves a run you can review. Tick Auto-preview to refresh the crop after each change.'},
+ {target:'#main-host',title:'Read the preview',text:'Compare the candidate outlines with the source: look for cells merged together, single cells split in two, and bright debris counted as cells. Scrub the preview Z slider to check depth.'},
+ {target:'#result-sidebar',title:'Your runs',text:'Finished runs appear here with their method. Select one and open Review to check its candidates cell by cell. Hide or show this panel with Results in the toolbar or the [ key.',prep:()=>setResultsPanel(true)}];
+const reviewTour=[
+ {target:'.review-switch',title:'Two views',text:'Planes shows the selected run in synchronized slices; Candidates lists every detected object with counts, filters and export. The badge shows how many still need a decision.',prep:()=>setReviewView('planes')},
+ {target:'.review-plane-grid',title:'Synchronized planes',text:'Raw XY and result XY sit on top; XZ and YZ show depth (stretched for thin stacks — see View). Click any plane to move the shared crosshair; colours are candidate masks and #numbers are their IDs.'},
+ {target:'#task-panel .compact-xyz',title:'Crosshair',text:'Type exact X, Y and Z (0-based voxels) or use arrow keys in a focused plane.'},
+ {target:'#object-inspector',title:'The candidate under the crosshair',text:'Open in 3D shows it with its neighbours. Decide… records accept, reject or needs review. Fix mask splits, merges, deletes or adds, saving a new label revision; the original run never changes.'},
+ {target:'.review-view-menu',title:'View options',text:'Intensity window, depth stretch and zoom around the crosshair.'},
+ {target:'.measurement-panel',title:'Candidates & counts',text:'Here you set count rules, filter by decision or edge contact, and export CSV, counts or corrected masks. When the lab’s manual counts exist for this image they appear here for comparison.',prep:()=>setReviewView('candidates')},
+ {target:'.review-switch',title:'Typical loop',text:'Candidates → click a row → Planes to inspect → Decide or Fix → next. Once every candidate has a decision under your count rules, the reviewed count is ready to export.',prep:()=>setReviewView('planes')}];
+function workspaceTour(tab){return tab==='Process'?[processTour,'field-tour-process']:tab==='Review'?[reviewTour,'field-tour-review']:null}
+function openWorkspaceGuide(){const t=workspaceTour(state.tab);if(t)runTour(t[0].map(s=>({...s,section:state.tab})),t[1]);else startTour()}
+// A "How this works" button in the toolbar for Process and Review; auto-start once per workspace.
+let guidePending=false;
+const guideButton=expButton('? How this works','guide-button',openWorkspaceGuide);guideButton.title='Walk through this workspace step by step';
+$('#simple-toolbar').append(guideButton);
+{const guideLayout=renderLayout;renderLayout=function(){guideLayout();guideButton.hidden=!['Process','Review'].includes(state.tab);
+ const t=workspaceTour(state.tab);if(!t||document.querySelector('.tour-layer'))return;let seen=true;try{seen=localStorage.getItem(t[1])==='1'}catch{}
+ if(!seen&&!guidePending&&(state.tab!=='Review'||reviewEligible())){guidePending=true;const tab=state.tab;setTimeout(()=>{guidePending=false;if(state.tab===tab&&!document.querySelector('.tour-layer'))runTour(t[0].map(s=>({...s,section:tab})),t[1])},1400)}}}
