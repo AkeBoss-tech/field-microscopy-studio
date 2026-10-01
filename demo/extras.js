@@ -17,7 +17,7 @@ function referenceCard(row,observed,population){
  const grid=expNode('div','reference-grid');
  const cell=(label,value,detail,active)=>{const c=expNode('div','reference-cell'+(active?' active':''));c.append(expNode('span','reference-label',label),expNode('strong','',String(value)));if(detail)c.append(expNode('span','reference-detail',detail));grid.append(c)};
  cell('IHC',row.IHC,'',population==='IHC');
- cell('OHC',row.total_OHC,`rows ${row.OHC1} / ${row.OHC2} / ${row.OHC3}`+(row.OHC4?` + ${row.OHC4} OHC4`:''),population==='OHC');
+ cell('OHC',row.total_OHC,`rows ${row.OHC1} / ${row.OHC2} / ${row.OHC3}`+(row.OHC4?` / ${row.OHC4} (row 4)`:''),population==='OHC');
  cell('All hair cells',row.IHC+row.total_OHC,'',population==='all');
  card.append(grid);
  if(observed!==null&&observed!==undefined){

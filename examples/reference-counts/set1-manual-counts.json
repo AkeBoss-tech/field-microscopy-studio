@@ -7,7 +7,7 @@
  },
  "legend": {
   "channels": "C1-Myo7a, C2-tdTomato, C3-phalloidin, C4-DAPI",
-  "OHC4": "OHC4 is a fourth OHC column included in the total; the workbook does not define it (likely cells outside the three regular rows)",
+  "OHC4": "OHC4 counts outer hair cells in a fourth OHC row and is included in the total (definition per Akash; the workbook itself does not define it)",
   "colours": "Workbook cell colours: green = loss of HC, purple = extra HC",
   "rules": "No edge-cell or extra-cell rule is recorded in the workbook"
  },
