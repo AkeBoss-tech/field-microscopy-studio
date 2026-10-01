@@ -63,6 +63,17 @@ For a future Docker/server deployment (not the free static demo), configure `HF_
 
 The static demo computes on the visitor’s device. The optional server uses a single process/instance and a four-run waiting limit. It is not a production platform, a private clinical tool, or a GPU learned-model service. Free-tier disk/storage/API quotas still apply. Export important work as well.
 
+## Figures, sharing and reference counts
+
+- **Export image** (view tools) re-renders the current view at 1×, 2× or 4×. You can download it or copy it to the clipboard. An optional info strip lists the image, channels, view, voxel spacing and date. Saved PNGs also embed the full view description (`field:view` JSON, title, source checksum) and, for 2D views, the physical pixel size. **Copy image** repeats the last export settings.
+- **Copy link** puts the image, mode, channel, run, selected cell, render settings and camera in the URL. Runs must exist in the viewer's own browser.
+- **Record spin** saves one full 3D turn as a video.
+- **Results** in the toolbar, the left edge tab, or the `[` key shows or hides the results panel. Press `?` for all shortcuts; **Workspace → Take the tour** gives a six-step introduction.
+- **Manual reference counts.** The hair-cell starter is linked to the lab's Set1 manual counts ([`examples/reference-counts/set1-manual-counts.json`](examples/reference-counts/set1-manual-counts.json)). Review → Candidates shows them next to each run's candidate count. A matching total does not mean the same cells were found.
+- **Load example** (hair-cell starter) imports an assistant-curated IHC/OHC segmentation; see [its README](examples/hair-control-ihc-ohc/README.md). It is not expert-validated.
+- **Process → Auto-preview** re-runs the crop preview after a setting changes.
+- `tests/ui/smoke.cjs` is a Playwright check of these flows against a running server.
+
 ## Local run
 
 Python 3.11:

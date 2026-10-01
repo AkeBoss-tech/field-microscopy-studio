@@ -17,14 +17,20 @@
   ],
   "calibrated": true,
   "channels": [
-    "Channel 1",
-    "Channel 2",
-    "Channel 3",
-    "Channel 4"
+    "Myo7a",
+    "tdTomato",
+    "Phalloidin",
+    "DAPI"
   ],
   "original_source": "Mid-1_x20x2.czi",
   "original_sha256": "eca25859d99493c0b7796b1f1c4fdabfa10994ff83e60558791cd616dc821c74",
   "sha256_packaged": "bb0a305e0527c01b24296942d25e4037765ec1b8d86fe150454587d9b6ce9cf3",
   "pixel_transform": "Identity: all channels, full XY, all acquired Z planes; lossless TIFF container conversion only",
-  "synthetic": false
+  "synthetic": false,
+  "channel_source": "Kwan Lab Set1 count workbook header: C1-Myo7a, C2-tdTomato, C3-phalloidin, C4-DAPI",
+  "reference_counts": {
+    "file": "examples/reference-counts/set1-manual-counts.json",
+    "group": "PLPCreER-GAP-Control",
+    "image": "Mid-1_x20x2"
+  }
 }

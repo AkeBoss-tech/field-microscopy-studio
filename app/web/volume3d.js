@@ -135,7 +135,7 @@ async function renderVolume3D(v,ctx,w,h,params){
   if(focusMode){const setting=channelSettings()[state.channel];atlases.push(await volumeAtlas('/api/volume-atlas?'+query({dataset:state.dataset,size:renderSettings().quality==='precise'?512:256,channel:state.channel,run:run,kind:state.image==='ridge-response'?'ridge-response':'processed',overlay:state.focusObject.run,object:state.focusObject.id,context:focusContext().context,neighbors:focusContext().neighbors,background:setting.background,maskonly:1}),depth))}
   if(ticket!==v.ticket||!v.isConnected)return true;
   const first=atlases[0];if(atlases.some(a=>a.width!==first.width||a.height!==first.height||a.depth!==first.depth))throw Error('Channels have mismatched 3D grids');
-  const moving=performance.now()<(v.camera.movingUntil||0),precise=renderSettings().quality==='precise',ratio=Math.min(devicePixelRatio||1,moving?.7:precise?2:1.5,(moving?480:precise?1600:960)/Math.max(w,h));
+  const moving=performance.now()<(v.camera.movingUntil||0),precise=renderSettings().quality==='precise',ratio=state.exportScale?Math.min(state.exportScale,7000/Math.max(w,h)):Math.min(devicePixelRatio||1,moving?.7:precise?2:1.5,(moving?480:precise?1600:960)/Math.max(w,h));
   const cw=Math.max(1,Math.round(w*ratio)),ch=Math.max(1,Math.round(h*ratio));
   if(!v.volumeCanvas){v.volumeCanvas=document.createElement('canvas');v.volumeGL=v.volumeCanvas.getContext('webgl2',{alpha:true,preserveDrawingBuffer:true,premultipliedAlpha:true});if(!v.volumeGL)return false;v.volumeProgram=volumeProgram(v.volumeGL)}
   const gl=v.volumeGL,program=v.volumeProgram;if(v.volumeCanvas.width!==cw)v.volumeCanvas.width=cw;if(v.volumeCanvas.height!==ch)v.volumeCanvas.height=ch;gl.viewport(0,0,cw,ch);gl.useProgram(program);
@@ -159,7 +159,7 @@ async function renderVolume3D(v,ctx,w,h,params){
   gl.uniform3fv(loc('colors[0]'),colors);vector('enabled',enabled);vector('brightness',brightness);vector('contrast',contrast);vector('blackPoint',black);vector('whitePoint',white);
   const render=renderSettings(),modes={volume:0,maximum:1,surface:2,mixed:3};
   gl.uniform1i(loc('mode'),modes[render.mode]??0);gl.uniform1i(loc('focusMode'),focusMode);gl.uniform1f(loc('threshold'),render.threshold);gl.uniform1f(loc('ramp'),render.ramp);gl.uniform1f(loc('maxOpacity'),render.maxOpacity);const clip=clipFor(bounds)||{x:[0,1],y:[0,1],z:[0,1]};gl.uniform3f(loc('clipLow'),clip.x[0],clip.y[0],clip.z[0]);gl.uniform3f(loc('clipHigh'),clip.x[1],clip.y[1],clip.z[1]);
-  gl.uniform1f(loc('sampleCount'),moving?96:render.quality==='precise'?448:224);
+  gl.uniform1f(loc('sampleCount'),moving?96:state.exportScale||render.quality==='precise'?448:224);
   gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   ctx.drawImage(v.volumeCanvas,0,0,w,h);return true;
  }catch(error){console.warn('3D volume renderer unavailable; using sampled points',error);return false}

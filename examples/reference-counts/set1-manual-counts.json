@@ -1,0 +1,173 @@
+{
+ "source": {
+  "file": "TP_HC Counting.xlsx",
+  "sheet": "Set 1",
+  "sha256": "a7be687b2a4d8e6fed51567b4735097feceef728021a9ae20e14dafb0d1f0f00",
+  "provenance": "Kwan Lab manual counts, Box file 2466262271146 (https://rutgers.app.box.com/file/2466262271146), shown as updated by Tvisha Parikh on 2026-09-26 (inferred from \u201cUpdated yesterday\u201d on 2026-09-27). Not yet confirmed to be the same file as Jihyun Kim\u2019s \u201cSet1_HC Numbers_Manual Count\u201d."
+ },
+ "legend": {
+  "channels": "C1-Myo7a, C2-tdTomato, C3-phalloidin, C4-DAPI",
+  "OHC4": "OHC4 is a fourth OHC column included in the total; the workbook does not define it (likely cells outside the three regular rows)",
+  "colours": "Workbook cell colours: green = loss of HC, purple = extra HC",
+  "rules": "No edge-cell or extra-cell rule is recorded in the workbook"
+ },
+ "animals": "Tamoxifen at P10-11, collected at P17",
+ "counts": [
+  {
+   "group": "PLPCreER-GAP-Control",
+   "image": "Base-1_x20x2",
+   "region_label": "base 1",
+   "total_length_um": 158.849,
+   "IHC": 18,
+   "OHC1": 19,
+   "OHC2": 16,
+   "OHC3": 19,
+   "OHC4": 10,
+   "total_OHC": 64,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Control",
+   "image": "Base-2_x20x2",
+   "region_label": "base 2",
+   "total_length_um": 158.543,
+   "IHC": 22,
+   "OHC1": 22,
+   "OHC2": 22,
+   "OHC3": 22,
+   "OHC4": 1,
+   "total_OHC": 67,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Control",
+   "image": "Mid-1_x20x2",
+   "region_label": "middle 1",
+   "total_length_um": 158.24,
+   "IHC": 21,
+   "OHC1": 23,
+   "OHC2": 23,
+   "OHC3": 24,
+   "OHC4": 1,
+   "total_OHC": 71,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Control",
+   "image": "Mid-2_x20x2",
+   "region_label": "middle 2",
+   "total_length_um": 160.609,
+   "IHC": 22,
+   "OHC1": 22,
+   "OHC2": 22,
+   "OHC3": 22,
+   "OHC4": 3,
+   "total_OHC": 69,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Control",
+   "image": "Apex-2_x20x2",
+   "region_label": "apex 2",
+   "total_length_um": 159.462,
+   "IHC": 19,
+   "OHC1": 23,
+   "OHC2": 21,
+   "OHC3": 22,
+   "OHC4": 2,
+   "total_OHC": 68,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Control",
+   "image": "Apex-1_x20x2",
+   "region_label": "apex 1",
+   "total_length_um": 159.183,
+   "IHC": 22,
+   "OHC1": 25,
+   "OHC2": 24,
+   "OHC3": 26,
+   "OHC4": 0,
+   "total_OHC": 75,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Chd4Het (Chd4 flox/+)",
+   "image": "Apex-1-1_x20x2",
+   "region_label": "apex 1-1",
+   "total_length_um": 160.712,
+   "IHC": 19,
+   "OHC1": 20,
+   "OHC2": 23,
+   "OHC3": 26,
+   "OHC4": 10,
+   "total_OHC": 79,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Chd4Het (Chd4 flox/+)",
+   "image": "Apex-1_x20x2",
+   "region_label": "apex 1",
+   "total_length_um": 159.603,
+   "IHC": 22,
+   "OHC1": 25,
+   "OHC2": 25,
+   "OHC3": 25,
+   "OHC4": 5,
+   "total_OHC": 80,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Chd4Het (Chd4 flox/+)",
+   "image": "Mid-1_x20x2",
+   "region_label": "middle-1",
+   "total_length_um": 159.718,
+   "IHC": 21,
+   "OHC1": 23,
+   "OHC2": 22,
+   "OHC3": 24,
+   "OHC4": 0,
+   "total_OHC": 69,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Chd4Het (Chd4 flox/+)",
+   "image": "Mid-1-1_x20x2",
+   "region_label": "middle-1-1",
+   "total_length_um": 159.906,
+   "IHC": 21,
+   "OHC1": 22,
+   "OHC2": 23,
+   "OHC3": 24,
+   "OHC4": 0,
+   "total_OHC": 69,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Chd4Het (Chd4 flox/+)",
+   "image": "Base-1-1_x20x2",
+   "region_label": "base 1-1",
+   "total_length_um": 159.042,
+   "IHC": 22,
+   "OHC1": 21,
+   "OHC2": 21,
+   "OHC3": 20,
+   "OHC4": 0,
+   "total_OHC": 62,
+   "note": null
+  },
+  {
+   "group": "PLPCreER-GAP-Chd4Het (Chd4 flox/+)",
+   "image": "Base-1_x20x2",
+   "region_label": "base 1",
+   "total_length_um": 159.134,
+   "IHC": 17,
+   "OHC1": 18,
+   "OHC2": 19,
+   "OHC3": 19,
+   "OHC4": 0,
+   "total_OHC": 56,
+   "note": null
+  }
+ ]
+}
