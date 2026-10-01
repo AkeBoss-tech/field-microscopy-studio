@@ -39,12 +39,24 @@ uniform int mode;
 uniform float threshold;
 uniform float ramp;
 uniform float maxOpacity;
+uniform vec3 clipLow;
+uniform vec3 clipHigh;
+uniform int focusMode;
 out vec4 fragment;
 // Display window, then brightness/contrast: identical to the 2D channel controls.
 vec4 signalAt(vec3 p){
  vec4 raw=texture(voxels,p/(halfSize*2.)+.5);
  vec4 s=clamp((raw-blackPoint)/max(whitePoint-blackPoint,vec4(.004)),0.,1.);
- return clamp((s*brightness-.5)*contrast+.5,0.,1.)*enabled;
+ s=clamp((s*brightness-.5)*contrast+.5,0.,1.)*enabled;
+ // Single-cell view: green holds the selected cell's mask. Dimmed mode fades everything outside it.
+ if(focusMode==1)s.r*=mix(.3,1.,raw.g);
+ return s;
+}
+vec3 tintOf(vec4 s);
+vec3 tintAt(vec4 s,vec3 p){
+ vec3 base=tintOf(s);if(focusMode==0)return base;
+ float m=texture(voxels,p/(halfSize*2.)+.5).g;
+ return focusMode==1?mix(vec3(.46,.5,.56),base,m):mix(base,vec3(.6,.78,1.),m*.8);
 }
 float strongest(vec4 s){return max(max(s.r,s.g),max(s.b,s.a));}
 vec3 tintOf(vec4 s){return (s.r*colors[0]+s.g*colors[1]+s.b*colors[2]+s.a*colors[3])/max(s.r+s.g+s.b+s.a,.001);}
@@ -64,7 +76,9 @@ void main(){
  vec2 screen=vec2(gl_FragCoord.x-resolution.x*.5-pan.x,resolution.y*.5-gl_FragCoord.y-pan.y)/scale;
  vec3 direction=-depthAxis;
  vec3 origin=horizontal*screen.x+vertical*screen.y+depthAxis*length(halfSize)*2.;
- vec3 t0=(-halfSize-origin)/direction,t1=(halfSize-origin)/direction;
+ // Live region sliders clip the ray to a sub-box without reloading the texture.
+ vec3 boxLow=-halfSize+clipLow*halfSize*2.,boxHigh=-halfSize+clipHigh*halfSize*2.;
+ vec3 t0=(boxLow-origin)/direction,t1=(boxHigh-origin)/direction;
  vec3 nearFace=min(t0,t1),farFace=max(t0,t1);
  float start=max(max(nearFace.x,nearFace.y),max(nearFace.z,0.));
  float finish=min(min(farFace.x,farFace.y),farFace.z);
@@ -80,7 +94,7 @@ void main(){
   if(mode==1){peak=max(peak,s);continue;}
   if(mode==0){
    float a=1.-pow(1.-clamp(transfer(v)*.32,0.,.98),stepScale);
-   color+=(1.-alpha)*a*tintOf(s);alpha+=(1.-alpha)*a;continue;
+   color+=(1.-alpha)*a*tintAt(s,p);alpha+=(1.-alpha)*a;continue;
   }
   // Surface modes shade each crossing of the threshold isosurface.
   bool inside=v>=threshold;
@@ -88,11 +102,11 @@ void main(){
    float lo=0.,hi=1.;vec3 q=p;
    for(int k=0;k<5;k++){float m=(lo+hi)*.5;q=p-direction*stepSize*(1.-m);if(strongest(signalAt(q))>=threshold)hi=m;else lo=m;}
    q=p-direction*stepSize*(1.-hi);
-   vec3 lit=shade(q,tintOf(signalAt(q)),depthAxis);
+   vec3 lit=shade(q,tintAt(signalAt(q),q),depthAxis);
    float layer=mode==2?1.:clamp(maxOpacity*.55,0.,1.);
    color+=(1.-alpha)*layer*lit;alpha+=(1.-alpha)*layer;
   }
-  if(mode==3&&inside){float a=1.-pow(1.-clamp(transfer(v)*.06,0.,.9),stepScale);color+=(1.-alpha)*a*tintOf(s);alpha+=(1.-alpha)*a;}
+  if(mode==3&&inside){float a=1.-pow(1.-clamp(transfer(v)*.06,0.,.9),stepScale);color+=(1.-alpha)*a*tintAt(s,p);alpha+=(1.-alpha)*a;}
   wasInside=inside;
  }
  if(mode==1){
@@ -116,14 +130,16 @@ async function renderVolume3D(v,ctx,w,h,params){
  if(!state.focusObject&&displayChannels().length>4)return false;
  try{
   const channels=state.focusObject?[state.channel]:displayChannels().slice(0,4),depth=bounds[1][2]-bounds[0][2];
-  const atlases=await Promise.all(channels.map(ch=>{const setting=channelSettings()[ch];const url='/api/volume-atlas?'+query({dataset:state.dataset,size:renderSettings().quality==='precise'?512:256,channel:ch,run:ch===state.channel?run:'',kind:state.image==='ridge-response'?'ridge-response':'processed',overlay:ch===state.channel?(state.focusObject?.run||overlay):'',object:ch===state.channel?state.focusObject?.id:'',bounds:state.focusObject?'':state.region3d?.join(','),background:setting.background});return volumeAtlas(url,depth)}));
+  const atlases=await Promise.all(channels.map(ch=>{const setting=channelSettings()[ch];const url='/api/volume-atlas?'+query({dataset:state.dataset,size:renderSettings().quality==='precise'?512:256,channel:ch,run:ch===state.channel?run:'',kind:state.image==='ridge-response'?'ridge-response':'processed',overlay:ch===state.channel?(state.focusObject?.run||overlay):'',object:ch===state.channel?state.focusObject?.id:'',context:ch===state.channel&&state.focusObject?focusContext().context:'',neighbors:ch===state.channel&&state.focusObject?focusContext().neighbors:'',bounds:state.focusObject?'':state.region3d?.join(','),background:setting.background});return volumeAtlas(url,depth)}));
+  const focusMode=state.focusObject?{isolate:0,dim:1,full:2}[focusContext().neighbors]:0;
+  if(focusMode){const setting=channelSettings()[state.channel];atlases.push(await volumeAtlas('/api/volume-atlas?'+query({dataset:state.dataset,size:renderSettings().quality==='precise'?512:256,channel:state.channel,run:run,kind:state.image==='ridge-response'?'ridge-response':'processed',overlay:state.focusObject.run,object:state.focusObject.id,context:focusContext().context,neighbors:focusContext().neighbors,background:setting.background,maskonly:1}),depth))}
   if(ticket!==v.ticket||!v.isConnected)return true;
   const first=atlases[0];if(atlases.some(a=>a.width!==first.width||a.height!==first.height||a.depth!==first.depth))throw Error('Channels have mismatched 3D grids');
   const moving=performance.now()<(v.camera.movingUntil||0),precise=renderSettings().quality==='precise',ratio=Math.min(devicePixelRatio||1,moving?.7:precise?2:1.5,(moving?480:precise?1600:960)/Math.max(w,h));
   const cw=Math.max(1,Math.round(w*ratio)),ch=Math.max(1,Math.round(h*ratio));
   if(!v.volumeCanvas){v.volumeCanvas=document.createElement('canvas');v.volumeGL=v.volumeCanvas.getContext('webgl2',{alpha:true,preserveDrawingBuffer:true,premultipliedAlpha:true});if(!v.volumeGL)return false;v.volumeProgram=volumeProgram(v.volumeGL)}
   const gl=v.volumeGL,program=v.volumeProgram;if(v.volumeCanvas.width!==cw)v.volumeCanvas.width=cw;if(v.volumeCanvas.height!==ch)v.volumeCanvas.height=ch;gl.viewport(0,0,cw,ch);gl.useProgram(program);
-  const key=channels.map((c,i)=>c+':'+atlases[i].width+'x'+atlases[i].height+'x'+atlases[i].depth+':'+(state.focusObject?.id||'')+':'+(state.region3d||[]).join(',')+':'+run+':'+channelSettings()[c].background).join('|')+':'+renderSettings().quality;
+  const key=channels.map((c,i)=>c+':'+atlases[i].width+'x'+atlases[i].height+'x'+atlases[i].depth+':'+(state.focusObject?.id||'')+':'+(state.region3d||[]).join(',')+':'+run+':'+channelSettings()[c].background).join('|')+':'+renderSettings().quality+':'+(state.focusObject?focusContext().neighbors+focusContext().context:'');
   if(v.volumeTextureKey!==key){
    if(v.volumeTexture)gl.deleteTexture(v.volumeTexture);
    const packed=new Uint8Array(first.width*first.height*first.depth*4);
@@ -142,7 +158,7 @@ async function renderVolume3D(v,ctx,w,h,params){
   channels.forEach((index,j)=>{const setting=channelSettings()[index],rgb=channelRGB(index);for(let k=0;k<3;k++)colors[j*3+k]=rgb[k]/255;enabled[j]=1;brightness[j]=setting.brightness/100;contrast[j]=setting.contrast/100;black[j]=(setting.blackPoint??0)/255;white[j]=(setting.whitePoint??255)/255});
   gl.uniform3fv(loc('colors[0]'),colors);vector('enabled',enabled);vector('brightness',brightness);vector('contrast',contrast);vector('blackPoint',black);vector('whitePoint',white);
   const render=renderSettings(),modes={volume:0,maximum:1,surface:2,mixed:3};
-  gl.uniform1i(loc('mode'),modes[render.mode]??0);gl.uniform1f(loc('threshold'),render.threshold);gl.uniform1f(loc('ramp'),render.ramp);gl.uniform1f(loc('maxOpacity'),render.maxOpacity);
+  gl.uniform1i(loc('mode'),modes[render.mode]??0);gl.uniform1i(loc('focusMode'),focusMode);gl.uniform1f(loc('threshold'),render.threshold);gl.uniform1f(loc('ramp'),render.ramp);gl.uniform1f(loc('maxOpacity'),render.maxOpacity);const clip=clipFor(bounds)||{x:[0,1],y:[0,1],z:[0,1]};gl.uniform3f(loc('clipLow'),clip.x[0],clip.y[0],clip.z[0]);gl.uniform3f(loc('clipHigh'),clip.x[1],clip.y[1],clip.z[1]);
   gl.uniform1f(loc('sampleCount'),moving?96:render.quality==='precise'?448:224);
   gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   ctx.drawImage(v.volumeCanvas,0,0,w,h);return true;

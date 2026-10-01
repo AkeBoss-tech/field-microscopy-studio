@@ -264,6 +264,12 @@ def points_view(q):
   mask,snapshot=active(q['overlay']);object_id=int(number(q['object'],1,4294967295));coords_mask=np.argwhere(mask==object_id)
   if not len(coords_mask):raise ValueError('This cell is absent from the current mask revision')
   low_box=coords_mask.min(0);high_box=coords_mask.max(0)+1;f=mr['factor'];bounds=[[int(low_box[2]*f),int(low_box[1]*f),int(low_box[0])],[min(d['shape'][3],int(high_box[2]*f)),min(d['shape'][2],int(high_box[1]*f)),int(high_box[0])]]
+  # Optional surrounding context (µm) so neighbouring cells can be shown around the selected one.
+  context=number(q.get('context',0),0,200)
+  if context:
+   sx,sy,sz=d.get('spacing',[1,1,1]) if d.get('calibrated') else [1,1,1];limit=[d['shape'][3],d['shape'][2],d['shape'][0]]
+   margin=[int(np.ceil(context/sx)),int(np.ceil(context/sy)),int(np.ceil(context/sz))]
+   bounds=[[max(0,bounds[0][i]-margin[i]) for i in range(3)],[min(limit[i],bounds[1][i]+margin[i]) for i in range(3)]]
  elif q.get('bounds'):
   parts=[int(v) for v in q['bounds'].split(',')]
   if len(parts)!=6 or any(parts[i]<0 or parts[i+3]>d['shape'][[3,2,0][i]] or parts[i]>=parts[i+3] for i in range(3)):raise ValueError('3D region must have valid X, Y, Z start and end bounds')
@@ -275,7 +281,7 @@ def points_view(q):
   b=np.maximum(b-gaussian_filter(b,(0,32/max(1,factor*stride),32/max(1,factor*stride))),0)
  elif q.get('background','off')!='off':raise ValueError('Unknown background display mode')
  lo,hi=np.percentile(b,[50,99.7])
- if object_id is not None:
+ if object_id is not None and q.get('neighbors','isolate')=='isolate':
   grid_x=np.minimum(mask.shape[2]-1,((x0//factor+np.arange(b.shape[2])*stride)*factor//mr['factor']))
   grid_y=np.minimum(mask.shape[1]-1,((y0//factor+np.arange(b.shape[1])*stride)*factor//mr['factor']))
   coords=np.argwhere(mask[z0:z1][:,grid_y[:,None],grid_x[None,:]]==object_id)
@@ -291,6 +297,19 @@ def points_view(q):
   for pt in points:
    xx=min(mask.shape[2]-1,int(pt[0]/mr['factor']));yy=min(mask.shape[1]-1,int(pt[1]/mr['factor']));pt[4]=int(mask[pt[2],yy,xx])
  return dict(points=points,spacing=d['spacing'],shape=d['shape'],bounds_native=bounds,object=object_id,note='Sampled fluorescence points; masks color visible source samples, not full surfaces')
+
+def object_index(q):
+ """Every candidate in the active label revision: ID, native bounds and centre, for cell-to-cell navigation."""
+ from corrections import active
+ from scipy.ndimage import find_objects
+ mr,_=getrun(q['run'])
+ if mr['scope']!='volume':raise ValueError('Cell navigation requires a volume run')
+ mask,_=active(q['run']);f=mr['factor'];rows=[]
+ for index,box in enumerate(find_objects(mask)):
+  if box is None:continue
+  low=[box[2].start*f,box[1].start*f,box[0].start];high=[box[2].stop*f,box[1].stop*f,box[0].stop]
+  rows.append(dict(id=index+1,bounds_native=[low,high],center=[(a+b)/2 for a,b in zip(low,high)]))
+ return dict(run=mr['id'],objects=rows)
 
 def volume_atlas(q):
  """A bounded, linearly filtered 3D texture encoded as a stack of PNG planes."""
@@ -322,7 +341,15 @@ def volume_atlas(q):
   mr,_=getrun(q['overlay']);mask,_=active(q['overlay']);object_id=int(q['object'])
   grid_x=np.minimum(mask.shape[2]-1,((x0//factor+np.arange(b.shape[2])*stride)*factor//mr['factor']))
   grid_y=np.minimum(mask.shape[1]-1,((y0//factor+np.arange(b.shape[1])*stride)*factor//mr['factor']))
-  b=np.where(mask[z0:z1][:,grid_y[:,None],grid_x[None,:]]==object_id,b,0)
+  # Neighbours: 'isolate' hides other signal, 'dim' keeps it faint, 'full' shows the raw context.
+  mode=q.get('neighbors','isolate')
+  if mode not in ('isolate','dim','full'):raise ValueError('Unknown neighbour display mode')
+  inside=mask[z0:z1][:,grid_y[:,None],grid_x[None,:]]==object_id
+  if q.get('maskonly'):
+   # Binary mask of the selected cell on the same grid, so the renderer can tint it apart from neighbours.
+   image=Image.fromarray(np.uint8(inside*255).reshape(inside.shape[0]*inside.shape[1],inside.shape[2]),'L')
+   output=io.BytesIO();image.save(output,format='PNG');return output.getvalue()
+  if mode=='isolate':b=np.where(inside,b,0)
  if b.size>256*256*512:raise ValueError('3D texture exceeds browser limit')
  low,high=np.percentile(b,[1,99.7]);high=max(high,low+1e-9)
  gray=np.uint8(np.clip((b-low)/(high-low)*255,0,255))
@@ -373,6 +400,7 @@ class Handler(BaseHTTPRequestHandler):
      result['objects']=[int(i) for i in ids if i]
     return self.send(result)
    if path=='/api/points':return self.send(points_view(q))
+   if path=='/api/object-index':return self.send(object_index(q))
    if path=='/api/volume-atlas':return self.send(volume_atlas(q),ctype='image/png')
    if path=='/api/jobs':return self.send(list(JOBS.values()))
    if path=='/api/result-file':

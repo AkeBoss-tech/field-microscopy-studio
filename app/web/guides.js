@@ -86,5 +86,22 @@ function drawGuides3D(ctx,w,h,project,bounds,scale){
   }
   ctx.restore();
  }
+ // With neighbours visible, outline the selected cell's bounding box so it stays identifiable.
+ const focus=state.focusObject;
+ if(focus?.bounds&&focusContext().neighbors!=='isolate'){
+  const [lo,hi]=focus.bounds,corner=i=>project(i&1?hi[0]:lo[0],i&2?hi[1]:lo[1],i&4?hi[2]:lo[2]);ctx.save();ctx.strokeStyle='#7aa7ff';ctx.lineWidth=1.6;ctx.setLineDash([6,4]);
+  for(let i=0;i<8;i++)for(let axis=0;axis<3;axis++)if(!(i>>axis&1)){const a=corner(i),b=corner(i|1<<axis);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+  const top=[...Array(8).keys()].map(corner).sort((a,b)=>a[1]-b[1])[0];ctx.setLineDash([]);ctx.font='600 12px ui-sans-serif,system-ui';const text='#'+focus.id,width=ctx.measureText(text).width+12;
+  ctx.fillStyle='#7aa7ff';ctx.beginPath();ctx.roundRect(top[0]-width/2,top[1]-24,width,19,6);ctx.fill();ctx.fillStyle='#071430';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,top[0],top[1]-14.5);ctx.restore();
+ }
+ // Outline of the live region crop, so the selected sub-volume stays visible against the full box.
+ const clip=clipFor(bounds);
+ if(clip){
+  const [[x0,y0,z0],[x1,y1,z1]]=bounds,at=(axis,t)=>bounds[0][axis]+t*(bounds[1][axis]-bounds[0][axis]);
+  const lo=[at(0,clip.x[0]),at(1,clip.y[0]),at(2,clip.z[0])],hi=[at(0,clip.x[1]),at(1,clip.y[1]),at(2,clip.z[1])];
+  const corner=i=>project(i&1?hi[0]:lo[0],i&2?hi[1]:lo[1],i&4?hi[2]:lo[2]);ctx.save();ctx.strokeStyle='#f2cd88';ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
+  for(let i=0;i<8;i++)for(let axis=0;axis<3;axis++)if(!(i>>axis&1)){const p=corner(i),q=corner(i|1<<axis);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke()}
+  ctx.restore();
+ }
  if(state.meta?.calibrated===true)drawScale(ctx,w,h,scale,'µm');
 }
