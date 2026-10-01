@@ -1,0 +1,144 @@
+/* Layout and motion pass (loads last). Uses the tokens defined in design.css. Display only. */
+:root{--glass:#0f1a25d9;--glass-border:#b5d3ef24;--spring:cubic-bezier(.34,1.32,.5,1);--out:cubic-bezier(.16,1,.3,1);--shadow-float:0 12px 36px #0007,0 2px 8px #0004}
+
+/* Header holds brand, workspace tabs and dataset actions in one row. */
+header{height:60px;padding:10px 18px;gap:12px}
+header strong{flex:none}
+header button,#simple-toolbar button,#simple-toolbar label,.ui-dropdown>summary{white-space:nowrap}
+header #start-task,header #import-source{flex:none}
+header>nav.workspace-tabs{display:flex;flex:none;margin-left:14px;padding:3px;gap:2px;border:1px solid var(--line);border-bottom:1px solid var(--line);background:#0b141e;border-radius:12px;position:relative;height:auto}
+header>nav.workspace-tabs button{position:relative;z-index:1;padding:7px 15px;border-radius:9px;font-size:13px;box-shadow:none!important;background:transparent!important;border:0!important;transition:color .25s var(--out)}
+header>nav.workspace-tabs button:hover:not(.active){color:#e4edf6}
+header #dataset{margin-left:auto}
+
+/* Sliding highlight shared by segmented controls (positioned by movePill). */
+.segmented{position:relative;isolation:isolate}
+.segmented>.segment-pill{position:absolute;left:0;top:0;z-index:0;border-radius:9px;pointer-events:none;opacity:0;transition:transform .42s var(--spring),width .42s var(--spring),height .3s var(--out),opacity .2s,background .3s;background:#26344a;box-shadow:inset 0 0 0 1px #b8c7ff2e,0 2px 10px #0005}
+.segmented>button{position:relative;z-index:1}
+.segmented>button.active{background:transparent!important;border-color:transparent!important}
+body[data-workspace=explore] nav.workspace-tabs .segment-pill{background:#1c3550;box-shadow:inset 0 0 0 1px #87c7ff55}
+body[data-workspace=process] nav.workspace-tabs .segment-pill{background:#2b2550;box-shadow:inset 0 0 0 1px #b9a6ff55}
+body[data-workspace=review] nav.workspace-tabs .segment-pill{background:#3a3020;box-shadow:inset 0 0 0 1px #f2cd8855}
+body[data-workspace=annotate] nav.workspace-tabs .segment-pill{background:#173a33;box-shadow:inset 0 0 0 1px #96e6cd55}
+#simple-toolbar .mode-buttons{padding:3px}
+#simple-toolbar .mode-buttons button{transition:color .25s var(--out)}
+
+/* Toolbar: compact, one row; the A/B launcher appears only when two runs can be compared. */
+#simple-toolbar{padding:8px 18px;gap:10px;min-height:50px;box-sizing:border-box}
+#simple-toolbar .comparison-launch{margin-left:auto}
+#simple-toolbar .comparison-launch:disabled{display:none}
+
+/* Image area: full height between toolbar and footer, with floating tools. */
+#workspace{gap:0}
+#desk{margin:10px;border:1px solid var(--line);border-radius:16px;position:relative}
+#result-sidebar{transition:width .38s var(--out),opacity .25s,padding .38s var(--out),border-color .3s;overflow-x:hidden}
+.sidebar-heading{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sidebar-toggle{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;min-height:0!important;padding:0!important;border-radius:8px;background:transparent;border-color:transparent;color:var(--muted)}
+.sidebar-toggle:hover{background:#ffffff10;color:#fff}
+.sidebar-toggle .ui-icon,.sidebar-reopen .ui-icon{width:16px;height:16px}
+body.sidebar-collapsed #result-sidebar{width:0!important;padding-left:0;padding-right:0;opacity:0;border-color:transparent;pointer-events:none}
+.sidebar-reopen{position:absolute;left:12px;top:12px;z-index:6;display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:10px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(12px);box-shadow:var(--shadow-float);font-size:12px;color:#dce8f3;opacity:0;transform:translateX(-12px);pointer-events:none;transition:opacity .3s,transform .4s var(--spring)}
+.sidebar-reopen b{font-weight:600;color:var(--source);font-size:11px}
+.sidebar-reopen b:empty,.sidebar-reopen b:is(:empty){display:none}
+body.sidebar-collapsed .sidebar-reopen{opacity:1;transform:none;pointer-events:auto}
+body.sidebar-collapsed .viewport .caption{left:auto;margin-left:120px}
+body:not([data-workspace=explore]) .sidebar-reopen{display:none}
+
+.tool-rail{position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:7;display:flex!important;flex-direction:column;gap:3px;padding:6px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(14px);box-shadow:var(--shadow-float);animation:railIn .5s var(--spring) both}
+.tool-rail[hidden]{display:none!important}
+.tool-rail .explore-tool-button{position:relative;width:36px;height:36px;min-height:0!important;padding:0!important;justify-content:center;border-radius:10px!important;margin:0!important;transition:background .2s,color .2s,transform .18s var(--spring)}
+.tool-rail .explore-tool-button::after{display:none}
+.tool-rail .tool-group-start{margin-top:6px!important}
+.tool-rail .tool-group-start::before{content:'';position:absolute;left:8px;right:8px;top:-5px;height:1px;background:var(--glass-border)}
+.tool-rail .explore-tool-label{position:absolute!important;right:calc(100% + 12px);top:50%;transform:translate(6px,-50%);padding:5px 9px;border-radius:7px;background:#0b141d;border:1px solid var(--glass-border);color:#e8f0f7;font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .16s,transform .25s var(--out);display:block!important}
+.tool-rail .explore-tool-button:hover .explore-tool-label,.tool-rail .explore-tool-button:focus-visible .explore-tool-label{opacity:1;transform:translate(0,-50%)}
+.tool-rail .ui-icon{width:18px;height:18px}
+.tool-rail .save-view{background:#78e4c51a!important;color:#9ff0d8!important;border-color:#78e4c544!important}
+.ruler-chip{position:absolute;left:50%;top:12px;z-index:7;display:flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border-radius:999px;background:var(--glass);border:1px solid #e8bc6966;backdrop-filter:blur(12px);box-shadow:var(--shadow-float);transform:translate(-50%,-10px);opacity:0;pointer-events:none;transition:opacity .25s,transform .4s var(--spring)}
+.ruler-chip.visible{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.ruler-chip .ruler-readout{width:auto;max-width:420px}
+
+/* Depth rail: vertical Z navigation on the image's left edge, only for single-plane views. */
+.depth-rail{position:absolute;left:12px;top:50%;z-index:7;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(14px);box-shadow:var(--shadow-float);opacity:0;transform:translate(-14px,-50%);pointer-events:none;transition:opacity .25s,transform .45s var(--spring)}
+.depth-rail.visible{opacity:1;transform:translate(0,-50%);pointer-events:auto}
+.depth-rail .depth-title{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--source)}
+.depth-rail button{display:grid;place-items:center;width:32px;height:28px;min-height:0!important;padding:0!important;border-radius:9px;font-size:11px}
+.depth-rail .ui-icon{width:16px;height:16px}
+.depth-rail #play-z{width:auto;min-width:32px;padding:0 6px!important;font-size:10px}
+.depth-rail #z{writing-mode:vertical-lr;direction:ltr;width:22px!important;height:min(260px,38vh);margin:2px 0;accent-color:var(--source);cursor:ns-resize}
+.depth-rail .depth-slider{display:flex}
+.depth-rail [hidden]{display:none!important}
+.depth-rail #zlabel{font-size:11px;font-variant-numeric:tabular-nums;color:#e6eef6;white-space:nowrap}
+body.sidebar-collapsed .depth-rail{top:calc(50% + 24px)}
+
+/* Footer: a slim status line — image size, analysis context, latest status. */
+footer{min-height:30px;padding:4px 18px;gap:14px}
+footer #meta{flex:none;color:#8ea2b5;font-size:11px}
+footer .footer-context{flex:1 1 auto;min-width:0;padding:0;border:0;background:none;font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+footer #status{flex:none;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-flash{animation:statusIn .45s var(--out)}
+
+/* Viewport overlays share one glass style. */
+.viewport .view-navigation{background:var(--glass)!important;border:1px solid var(--glass-border)!important;backdrop-filter:blur(14px);box-shadow:var(--shadow-float);border-radius:13px!important}
+.viewport .caption{background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(10px);border-radius:9px}
+.turntable-button.active{background:#78e4c522!important;color:#a6f3dc!important;border-color:#78e4c566!important}
+
+/* 3D render dock: ZEN-style rendering modes and transfer-function controls. */
+.render-dock{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:6;display:grid;grid-template-columns:auto auto;align-items:center;gap:6px;max-width:calc(100% - 24px);animation:dockIn .55s var(--spring) both}
+.render-modes{display:flex;padding:3px;gap:2px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(14px);box-shadow:var(--shadow-float)}
+.render-modes button,.render-dock .segmented.small button{border:0!important;background:transparent!important;padding:6px 12px;min-height:0;font-size:12px;border-radius:9px;color:#b8c8d8;white-space:nowrap;transition:color .25s}
+.render-modes button.active,.render-dock .segmented.small button.active{color:#fff}
+.render-modes .segment-pill,.render-dock .segmented.small .segment-pill{background:#1d3a4e;box-shadow:inset 0 0 0 1px #87c7ff4d}
+.render-adjust-toggle{display:inline-flex;align-items:center;gap:6px;height:100%;padding:6px 12px;border-radius:12px;background:var(--glass)!important;border:1px solid var(--glass-border)!important;backdrop-filter:blur(14px);box-shadow:var(--shadow-float);font-size:12px;color:#d6e3ee}
+.render-adjust-toggle .ui-icon{width:16px;height:16px;transition:transform .45s var(--spring)}
+.render-dock.open .render-adjust-toggle{color:#fff;border-color:#87c7ff66!important}
+.render-dock.open .render-adjust-toggle .ui-icon{transform:rotate(180deg)}
+.render-panel{grid-column:1/-1;justify-self:center;width:min(380px,100%);box-sizing:border-box;display:grid;gap:10px;padding:14px 16px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(16px);box-shadow:var(--shadow-float);font-size:12px;transform-origin:top center;opacity:0;transform:translateY(-8px) scale(.97);visibility:hidden;max-height:0;overflow:hidden;padding-top:0;padding-bottom:0;transition:opacity .22s,transform .4s var(--spring),visibility 0s .4s,max-height .4s var(--out),padding .4s var(--out)}
+.render-dock.open .render-panel{opacity:1;transform:none;visibility:visible;max-height:420px;padding-top:14px;padding-bottom:14px;transition:opacity .25s,transform .45s var(--spring),visibility 0s,max-height .45s var(--out),padding .45s var(--out)}
+.render-slider{display:grid;grid-template-columns:86px 1fr 40px;align-items:center;gap:10px;color:#cfdbe6;transition:opacity .25s}
+.render-slider.dimmed{opacity:.4}
+.render-slider input{width:100%;accent-color:var(--source)}
+.render-slider output{text-align:right;font-variant-numeric:tabular-nums;color:#e9f2f9}
+.render-row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#cfdbe6}
+.render-dock .segmented.small{display:flex;padding:2px;border-radius:10px;background:#0b141e;border:1px solid var(--line)}
+.render-check{display:flex;align-items:center;gap:8px;color:#cfdbe6}
+.render-note{margin:0;padding:8px 10px;border-radius:9px;background:#ffffff08;color:var(--text-secondary);line-height:1.45;font-size:11.5px}
+.render-fine{font-size:11px;color:#8ea2b5}
+.render-reset{padding:4px 10px;min-height:0;font-size:11px;border-radius:8px}
+
+/* Buttons respond to touch with a small press. */
+button{transition:background-color .2s,border-color .2s,color .2s,transform .18s var(--spring),box-shadow .2s}
+button:active:not(:disabled){transform:scale(.96)}
+
+/* Menus and dialogs open with motion. */
+.ui-dropdown[open]>.dropdown-body{animation:menuIn .32s var(--spring) both;transform-origin:top left}
+dialog[open]{animation:dialogIn .42s var(--spring) both}
+dialog[open]::backdrop{animation:fadeIn .3s ease both;backdrop-filter:blur(3px)}
+#main-host.view-enter .viewport,#main-host.view-enter>*{animation:viewIn .5s var(--out) both}
+#main-host.view-enter>*:nth-child(2){animation-delay:.06s}
+#task-panel:not([hidden]){animation:panelIn .45s var(--out) both}
+
+@keyframes viewIn{from{opacity:0;transform:scale(.985);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+@keyframes menuIn{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes dialogIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes statusIn{from{opacity:.2;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes railIn{from{opacity:0;transform:translate(14px,-50%)}to{opacity:1;transform:translateY(-50%)}}
+@keyframes dockIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes panelIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+
+/* Narrow screens: tabs take their own header row; the rail and dock tighten. */
+@media(max-width:1100px){header{height:auto;flex-wrap:wrap}
+ header>nav.workspace-tabs{order:10;flex:1 1 100%;margin-left:0;justify-content:space-between}
+ header>nav.workspace-tabs button{flex:1}
+ .render-modes button{padding:6px 8px}
+}
+@media(max-width:800px){#desk{margin:6px}
+ .tool-rail{top:auto;bottom:70px;transform:none;animation:none}
+ .tool-rail .explore-tool-label{display:none!important}
+ .render-dock{grid-template-columns:1fr;top:8px}
+ .render-modes{overflow-x:auto;scrollbar-width:none}
+ footer .footer-context{display:none}
+ .sidebar-reopen{display:none}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}

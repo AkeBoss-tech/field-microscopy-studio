@@ -308,7 +308,10 @@ def volume_atlas(q):
  else:bounds=[[0,0,0],[d['shape'][3],d['shape'][2],d['shape'][0]]]
  (x0,y0,z0),(x1,y1,z1)=bounds
  b=a[z0:z1,y0//factor:int(np.ceil(y1/factor)),x0//factor:int(np.ceil(x1/factor))]
- stride=max(1,int(np.ceil(max(b.shape[1:])/256)))
+ # Fast previews sample at most 256 XY positions; Precise asks for up to 512. The atlas stacks
+ # planes vertically, so keep its height under the 32k canvas limit browsers enforce.
+ target=int(number(q.get('size',256),64,512));target=max(64,min(target,32000//max(1,b.shape[0])))
+ stride=max(1,int(np.ceil(max(b.shape[1:])/target)))
  b=b[:,::stride,::stride].astype(np.float32)
  if q.get('background','off')=='local':
   from scipy.ndimage import gaussian_filter
