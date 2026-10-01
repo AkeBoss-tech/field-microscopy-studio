@@ -141,3 +141,74 @@ addEventListener('DOMContentLoaded',()=>{
  if(backup&&menu)menu.append(backup);
  requestAnimationFrame(()=>movePill($('nav.workspace-tabs')));
 });
+
+// ---- Process: show the selected algorithm, its full pipeline, and what is running now ----
+const algorithmNames={otsu:'Otsu threshold',watershed:'Distance watershed',sato:'Sato ridge filter',preprocess:'Gaussian & background'};
+const methodGlyphs={otsu:'◉',watershed:'◈',sato:'⌁',preprocess:'◒'};
+function recipeField(prefix){return [...document.querySelectorAll('.experiment-settings [name]')].find(el=>el.name===prefix||el.name.startsWith(prefix+'_')&&!el.closest('label')?.hidden)}
+function recipeValue(prefix){const el=recipeField(prefix);if(!el)return null;return el.type==='checkbox'?el.checked:el.value}
+function recipeUnit(prefix){const el=recipeField(prefix),label=el?.closest('label')?.firstChild?.textContent||'';return (label.match(/\(([^)]+)\)/)||[])[1]||''}
+function pipelineSteps(){
+ const p=expParams(),method=p.method,on=v=>v!==null&&v!==''&&Number(v)>0;
+ const parent=document.querySelector('.experiment-settings [name=parent]'),input=parent?.selectedOptions[0]?.textContent||'Original source';
+ const scope=p.scope==='volume'?'all '+state.meta.shape[0]+' Z planes':p.scope==='slice'?'plane '+(state.z+1):'Z projection';
+ const steps=[['Input',input+' · C'+(state.channel+1)+' · '+p.factor+'× XY · '+scope,true]];
+ const sigma=recipeValue('sigma'),background=recipeValue('background'),normalize=recipeValue('normalize');
+ steps.push(['Smooth',on(sigma)?'Gaussian σ '+sigma+' '+recipeUnit('sigma'):'Off',on(sigma)]);
+ steps.push(['Background',on(background)?'Subtract σ '+background+' '+recipeUnit('background'):'Off',on(background)]);
+ if(normalize!==null)steps.push(['Normalize',normalize?'Rescale intensity':'Off',!!normalize]);
+ if(method==='preprocess'){steps.push(['Output','Processed intensity · no labels',true]);return steps}
+ if(method==='sato')steps.push(['Ridge filter','Sato · '+(p.sato_mode==='slice'?'per XY slice':'3D grid')+' · scales 1–2 px',true]);
+ const threshold=recipeValue('threshold');steps.push(['Threshold','Otsu'+(threshold&&Number(threshold)!==1?' × '+threshold:'')+(method==='sato'?' on ridge response':''),true]);
+ const minFg=recipeValue('min_size');steps.push(['Drop specks',on(minFg)?'< '+minFg+' '+recipeUnit('min_size'):'Off',on(minFg)]);
+ if(method==='watershed'){const d=recipeValue('seed_distance')??recipeValue('distance');steps.push(['Split touching','Seeds ≥ '+(d??'?')+' '+((recipeUnit('seed_distance')||recipeUnit('distance'))||'px')+' apart',true])}
+ const minFinal=recipeValue('min_final');if(minFinal!==null)steps.push(['Final filter',on(minFinal)?'Objects < '+minFinal+' '+recipeUnit('min_final')+' removed':'Off',on(minFinal)]);
+ steps.push(['Output',method==='sato'?'Connected ridge networks':'Candidate labels'+(p.scope==='volume'?' in 3D':''),true]);
+ return steps;
+}
+function renderAlgorithmOverview(){
+ const panel=$('#task-panel');if(state.tab!=='Process'||!panel||panel.hidden||!state.meta)return;
+ let box=panel.querySelector('.algo-overview');
+ if(!box){box=document.createElement('section');box.className='algo-overview';box.setAttribute('aria-label','Algorithm and pipeline');
+  const summary=$('#recipe-summary');(summary&&panel.contains(summary)?summary:panel.querySelector('.exp-form-heading')||panel.firstChild)?.after(box)}
+ // The pipeline sits below the Preview / Run actions so those stay in view.
+ let pipeline=panel.querySelector('.algo-pipeline-box');
+ if(!pipeline){pipeline=document.createElement('section');pipeline.className='algo-pipeline-box';pipeline.setAttribute('aria-label','Processing pipeline');(panel.querySelector('.experiment-actions')||box).after(pipeline)}
+ const p=expParams();box.classList.toggle('settled',box.dataset.method===p.method);box.dataset.method=p.method;box.replaceChildren();
+ box.append(expNode('p','algo-label','Algorithm'));
+ const cards=expNode('div','algo-cards');cards.setAttribute('role','radiogroup');cards.setAttribute('aria-label','Algorithm');
+ for(const [key,[title,help,color]] of Object.entries(methodInfo)){
+  const b=expButton('','algo-card '+color+(p.method===key?' active':''),()=>{const select=document.querySelector('.experiment-settings [name=method]');if(!select||select.value===key)return;select.value=key;select.dispatchEvent(new Event('input',{bubbles:true}));select.dispatchEvent(new Event('change',{bubbles:true}));state.recipe={...state.recipe,method:key};expUpdateSummary?.();renderAlgorithmOverview()});
+  b.setAttribute('role','radio');b.setAttribute('aria-checked',String(p.method===key));b.title=help;
+  b.append(expNode('span','algo-glyph',methodGlyphs[key]),expNode('strong','',title),expNode('span','algo-name',algorithmNames[key]));cards.append(b);
+ }
+ box.append(cards,expNode('p','algo-help',methodInfo[p.method][1]));
+ pipeline.classList.toggle('settled',box.classList.contains('settled'));pipeline.replaceChildren();
+ const head=expNode('div','algo-pipeline-head');head.append(expNode('p','algo-label','Pipeline'),expButton('⚙ Edit','algo-edit',()=>expOpenSettings()));pipeline.append(head);
+ const list=expNode('ol','algo-pipeline');
+ pipelineSteps().forEach(([name,value,active],i)=>{const li=expNode('li',active?'':'off');li.style.animationDelay=(i*35)+'ms';li.append(expNode('span','step-dot',String(i+1)),expNode('span','step-name',name),expNode('span','step-value',value));li.title='Edit settings';li.onclick=()=>expOpenSettings();list.append(li)});
+ pipeline.append(list);
+ const running=expNode('div','algo-running');running.hidden=true;box.prepend(running);refreshRunning();
+}
+let runningTimer=null;
+async function refreshRunning(){
+ clearTimeout(runningTimer);const box=document.querySelector('.algo-running');if(!box||state.tab!=='Process')return;
+ try{const jobs=(await api('/api/jobs')).filter(j=>['queued','running'].includes(j.status)&&j.dataset===state.dataset);
+  box.replaceChildren();box.hidden=!jobs.length;
+  for(const j of jobs){const row=expNode('div','running-job');const info=methodInfo[j.method]||[j.method||'Processing'];const seconds=Math.max(0,Math.round(Date.now()/1000-j.created));
+   row.append(expNode('span','running-pulse'),expNode('strong','',(j.status==='queued'?'Queued · ':'Running · ')+info[0]),expNode('span','running-meta',(algorithmNames[j.method]||'')+' · C'+(Number(j.channel)+1)+(j.factor?' · '+j.factor+'× XY':'')+' · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')),expNode('span','running-message',j.message||'Waiting for the worker…'),expNode('span','running-bar'));box.append(row)}
+  if(jobs.length)runningTimer=setTimeout(refreshRunning,1500);
+ }catch{}
+}
+{const processLayout=renderLayout;renderLayout=function(){processLayout();if(state.tab==='Process')requestAnimationFrame(renderAlgorithmOverview)};
+ // Process re-renders its panel asynchronously; re-attach the overview whenever it disappears.
+ new MutationObserver(()=>{if(state.tab==='Process'&&!$('#task-panel').hidden&&!$('#task-panel .algo-overview')&&$('#task-panel .experiment-form'))renderAlgorithmOverview()}).observe($('#task-panel'),{childList:true,subtree:true});
+ document.addEventListener('change',e=>{if(e.target.closest?.('.experiment-settings'))requestAnimationFrame(renderAlgorithmOverview)});
+ document.addEventListener('input',e=>{if(e.target.closest?.('.experiment-settings'))requestAnimationFrame(renderAlgorithmOverview)});
+ // A run submitted from Process shows up in "Running now" right away.
+ document.addEventListener('click',e=>{if(/Run full/.test(e.target.closest?.('button')?.textContent||''))setTimeout(refreshRunning,400)},true)}
+// Results list: friendly algorithm names and the same glyph/colour as the Process cards.
+{const shellCatalog=resultCatalog;resultCatalog=function(){shellCatalog();
+ for(const b of document.querySelectorAll('#result-list .result-button[data-result]')){const r=state.runs.find(run=>run.id===b.dataset.result),info=r&&methodInfo[r.method];if(!info)continue;
+  const title=b.firstElementChild;if(title&&(!r.title||r.title===r.method))title.textContent=info[0];
+  const glyph=expNode('span','result-glyph '+info[2],methodGlyphs[r.method]);b.prepend(glyph);b.classList.add('has-glyph');b.title=info[0]+' · '+algorithmNames[r.method]}}}

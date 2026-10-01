@@ -508,7 +508,7 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/run':
     if body['dataset'] not in DATA:raise ValueError('Unknown dataset')
     if len([j for j in JOBS.values() if j['status'] in ['queued','running']])>=4:raise ValueError('Four runs already waiting; try again when one finishes')
-    jid=uuid.uuid4().hex;JOBS[jid]=dict(id=jid,status='queued',created=time.time(),dataset=body['dataset']);POOL.submit(run_job,jid,body);return self.send(JOBS[jid])
+    jid=uuid.uuid4().hex;JOBS[jid]=dict(id=jid,status='queued',created=time.time(),dataset=body['dataset'],method=body.get('method','otsu'),channel=body.get('channel',0),scope=body.get('scope','volume'),factor=body.get('factor'),title=body.get('recipe_name',''));POOL.submit(run_job,jid,body);return self.send(JOBS[jid])
    if path=='/api/cancel':
     job=JOBS[body['id']]
     if job['status'] in ['queued','running']:job['cancel']=True;job['message']='Cancel requested; waiting for current operation'
