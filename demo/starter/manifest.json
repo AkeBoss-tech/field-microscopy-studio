@@ -36,6 +36,78 @@
     }
   },
   {
+    "id": "jk-set2-base",
+    "name": "JK Set2 \u00b7 abnormal arrangement \u00b7 Base-1_x20x2",
+    "path": "starter/jk-set2-base.ome.tif",
+    "axes": "ZCYX",
+    "shape": [
+      25,
+      4,
+      1024,
+      1024
+    ],
+    "dtype": "uint8",
+    "spacing": [
+      0.1559814453125,
+      0.1559814453125,
+      1.0
+    ],
+    "calibrated": true,
+    "channels": [
+      "Myo7a",
+      "tdTomato",
+      "Phalloidin",
+      "DAPI"
+    ],
+    "original_source": "Base-1_x20x2.czi",
+    "original_sha256": "e214a1908edf6fa41752d123f0b80f63e966311c5520ff2ee07964c75531740a",
+    "synthetic": false,
+    "group": "PLPCreER-GAP Control",
+    "age": "P11",
+    "purpose": "Abnormal hair-cell arrangement / ectopic-row counting test",
+    "channel_authority": "Supplied Notes for Set2_Hair Cell Counting Test.docx",
+    "validation_status": "Unreviewed test image; expert manual counts pending",
+    "local_only": false,
+    "pixel_transform": "Identity: all channels, full XY, all acquired Z planes; lossless OME-TIFF container conversion only",
+    "sha256_packaged": "296b35cdfe6d18e512efb44cfd29d0ae6a14294482c8935bdb16590717c3a3b4"
+  },
+  {
+    "id": "jk-set2-mid",
+    "name": "JK Set2 \u00b7 abnormal arrangement \u00b7 Mid-1_x20x2",
+    "path": "starter/jk-set2-mid.ome.tif",
+    "axes": "ZCYX",
+    "shape": [
+      26,
+      4,
+      1024,
+      1024
+    ],
+    "dtype": "uint8",
+    "spacing": [
+      0.1559814453125,
+      0.1559814453125,
+      1.0
+    ],
+    "calibrated": true,
+    "channels": [
+      "Myo7a",
+      "tdTomato",
+      "Phalloidin",
+      "DAPI"
+    ],
+    "original_source": "Mid-1_x20x2.czi",
+    "original_sha256": "3f8f57b3e31cf82309121b569b2d533fa238fb5593a217f1c68c0d5a5540c1c9",
+    "synthetic": false,
+    "group": "PLPCreER-GAP Control",
+    "age": "P11",
+    "purpose": "Abnormal hair-cell arrangement / ectopic-row counting test",
+    "channel_authority": "Supplied Notes for Set2_Hair Cell Counting Test.docx",
+    "validation_status": "Unreviewed test image; expert manual counts pending",
+    "local_only": false,
+    "pixel_transform": "Identity: all channels, full XY, all acquired Z planes; lossless OME-TIFF container conversion only",
+    "sha256_packaged": "701f18d8fb8d9cae9efcd39988e507ff475538aba146044e6ab232824e7c3d31"
+  },
+  {
     "id": "imop",
     "name": "iMOP \u00b7 neurons \u00b7 native 14Z",
     "path": "starter/imop.ome.tif",

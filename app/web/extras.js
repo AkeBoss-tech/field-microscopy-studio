@@ -113,7 +113,7 @@ document.addEventListener('keydown',e=>{if(e.key==='?'&&!e.target.closest('input
 
 // ---- Guided tour ----
 const tourSteps=[
- ['header nav.workspace-tabs','Four workspaces','Explore views the image, Process runs algorithms, Review checks candidates cell by cell, Annotate draws your own marks.'],
+ ['header nav.workspace-tabs','Four workspaces','Explore views the image, Process prepares intensity and labels or measures signal, Review checks candidates, and Annotate draws your own marks.'],
  ['#dataset','Choose an image','Two real scans are included. Add your own TIFF or CZI with Add image.'],
  ['#simple-toolbar .mode-buttons','Projection, slices or 3D','Average projection is the default. 2D slices shows one acquired plane; 3D renders the whole stack.'],
  ['#simple-toolbar .channels-menu','Channels & contrast','Toggle channels, change colours, and drag the histogram markers to set brightness and contrast.'],
@@ -354,12 +354,14 @@ function runTour(steps,key,i=0){
 }
 startTour=(i=0)=>runTour(tourSteps.map(([target,title,text])=>target==='#result-list'?{target:'#result-sidebar',title,text,section:'Studio',prep:()=>setResultsPanel(true)}:{target,title,text,section:'Studio'}),'field-tour-done',i);
 const processTour=[
- {target:'.process-steps',title:'Preview → Tune → Run',text:'Process works in three steps: try a recipe on a small crop, adjust it until the outlines look right, then run it on the whole stack. Nothing is saved until the full run.'},
- {target:'#task-panel .algo-overview',title:'Pick an algorithm',text:'Connected regions (Otsu) for well-separated bright cells, Separate candidates (watershed) to split touching cells, Ridge networks (Sato) for neurites, Prepare intensity to clean the signal first. The active card is highlighted.'},
- {target:'#task-panel .algo-pipeline-box',title:'What will run',text:'The pipeline lists every step with its current setting; greyed steps are off. Click any step, or Edit, to change it.'},
- {target:'#task-panel .experiment-actions',title:'Preview, then run',text:'Choose preview region picks the crop. Preview this region shows source, processed and candidate outlines side by side. Run full volume saves a run you can review. Tick Auto-preview to refresh the crop after each change.'},
- {target:'#main-host',title:'Read the preview',text:'Compare the candidate outlines with the source: look for cells merged together, single cells split in two, and bright debris counted as cells. Scrub the preview Z slider to check depth.'},
- {target:'#result-sidebar',title:'Your runs',text:'Finished runs appear here with their method. Select one and open Review to check its candidates cell by cell. Hide or show this panel with Results in the toolbar or the [ key.',prep:()=>setResultsPanel(true)}];
+ {target:'.process-steps',title:'Preview → Tune → Run',text:'For a 3D volume, try the recipe on a small region, adjust the settings, then save a full-image or selected-region run. Previews are unsaved snapshots. A 2D slice or Z projection can be run directly.'},
+ {target:'#task-panel .process-input',title:'Source & region',text:'Choose the source channel, 3D volume or 2D scope, and XY resolution. For 3D, Run region chooses Full image or Selected XY / Z. Edit the region to set its XY bounds and Z range; a preview may sample a smaller part of a large region.'},
+ {target:'#task-panel .exp-section.mint',title:'Preprocessing',text:'Smooth reduces fine noise, Background subtracts a broader signal, and Normalize intensity rescales contrast. A value of 0 turns either filter off. These steps prepare the signal before the labeling technique runs.'},
+ {target:'#task-panel .process-algorithm',title:'Label & measure',text:'Choose a Technique: Connected regions labels bright signal, Separate touching cells uses watershed, and the five Neurites techniques measure skeleton paths and branches. Neurite results describe connected networks; crossings are not assigned to individual neurons. Compare all 5 techniques saves separate runs.'},
+ {target:'#task-panel .algo-pipeline-box',title:'Applied pipeline',text:'Expand Applied pipeline to read every step and its current setting; greyed steps are off. Change the controls above to edit the recipe. Advanced… holds input, calibration, run naming and additional method settings.'},
+ {target:'#task-panel .experiment-actions',title:'Preview, then save',text:'Preview this region, or Preview a sample, shows source, processed signal and outlines side by side for 3D. Refresh it after changing the recipe, or enable Auto-preview. The Run button saves the scope and region you chose; its label identifies what will run.'},
+ {target:'#main-host',title:'Read the preview',text:'Check outlines against the source: look for merged cells, split cells, debris or missing neurite paths. Use the preview depth control to inspect acquired Z planes. A preview helps tune the recipe; its candidate labels do not establish biological accuracy.'},
+ {target:'#result-sidebar',title:'Your runs',text:'Saved results appear here with their method, channel and region. Select one to review candidates or inspect neurite measurements and exports. Hide or show this panel with Results in the toolbar or the [ key.',prep:()=>setResultsPanel(true)}];
 const reviewTour=[
  {target:'.review-switch',title:'Two views',text:'Planes shows the selected run in synchronized slices; Candidates lists every detected object with counts, filters and export. The badge shows how many still need a decision.',prep:()=>setReviewView('planes')},
  {target:'.review-plane-grid',title:'Synchronized planes',text:'Raw XY and result XY sit on top; XZ and YZ show depth (stretched for thin stacks — see View). Click any plane to move the shared crosshair; colours are candidate masks and #numbers are their IDs.'},

@@ -84,12 +84,20 @@ class MeasurementChecks(unittest.TestCase):
         self.assertEqual(rows[0]['review_revision'], saved['revision'])
         self.assertTrue(rows[0]['note'].startswith("'="))
         self.assertEqual(rows[0]['boundary_policy'], 'interior')
+        self.assertEqual(rows[0]['xy_area_um2'], '9.0')
+        self.assertAlmostEqual(float(rows[0]['xy_aspect_ratio']), 1.)
+        self.assertIn('XY footprint', rows[0]['morphology_basis'])
         with self.assertRaisesRegex(ValueError, 'changed'):m.csv_export(dict(q, revision='stale'))
         self.assertEqual(len(list(csv.DictReader(io.StringIO(m.csv_export(dict(q, boundary='edge')).decode('utf-8-sig'))))), 0)
 
     def test_uncalibrated_never_reports_physical_volume(self):
         s.DATA[self.key]['calibrated']=False
         self.assertIsNone(m.table(self.q)['rows'][0]['volume_um3'])
+        row=m.table(self.q)['rows'][0]
+        self.assertIsNone(row['xy_area_um2'])
+        self.assertIsNone(row['xy_perimeter_um'])
+        self.assertEqual(row['xy_area'], 24.)
+        self.assertEqual(row['morphology_units'], 'native px')
         for values in [dict(object=0), dict(object=99), dict(status='verified_cell'), dict(note='x'*2001)]:
             with self.assertRaises(ValueError):
                 m.save(dict(dict(self.q, object=3, status='accepted', expected_revision=None), **values))
@@ -105,6 +113,24 @@ class MeasurementChecks(unittest.TestCase):
         data=m.table(self.q)
         self.assertEqual(data['revision'], saved['revision'])
         self.assertEqual(data['counts']['rejected'], 0)
+
+    def test_current_network_metrics_follow_label_corrections(self):
+        from neurites import measure, csv_bytes, NETWORK_FIELDS
+        import corrections
+        folder=s.STORE/'runs'/self.rid
+        _, rows, _, summary=measure(self.labels, (2., 1.5, 1.), True)
+        s.atomic(folder/'run.json', dict(self.run, method='neurite_threshold', neurites=summary))
+        (folder/'neurites.csv').write_bytes(csv_bytes(rows, NETWORK_FIELDS))
+        original=m.table(self.q)['rows'][0]
+        self.assertIn('network_length_um', original)
+        self.assertEqual(original['network_length_um'], rows[0]['length_um'])
+        changed=corrections.save(dict(self.q, action='delete', object=3, expected_label_revision=None))
+        updated=m.table(self.q)
+        self.assertEqual([o['id'] for o in updated['rows']], [7])
+        self.assertEqual(updated['rows'][0]['network_length_um'], 0.)
+        inspected=test_review.review.inspect_volume(dict(self.q, x=0,y=0,z=0))['object']
+        self.assertEqual(inspected['label_revision'], changed['label_revision'])
+        self.assertEqual(inspected['network_length_um'], updated['rows'][0]['network_length_um'])
 
     def test_run_isolation_and_frozen_source_provenance(self):
         import shutil

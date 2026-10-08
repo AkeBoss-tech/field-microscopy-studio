@@ -1,0 +1,7 @@
+/* Keep Results usable when the image and inspector stack on a small screen. */
+@media(max-width:1150px){body.experiment-mode:not(.sidebar-collapsed) #result-sidebar{display:block!important;position:fixed;z-index:65;top:170px;bottom:36px;left:8px;width:280px!important;max-width:calc(100vw - 24px);height:auto!important;flex:none!important;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 55px #000a;opacity:1;pointer-events:auto}}
+@media(max-width:850px){body:not(.sidebar-collapsed) #result-sidebar{display:block!important;position:fixed;z-index:65;top:170px;bottom:36px;left:8px;width:280px!important;max-width:calc(100vw - 24px);height:auto!important;flex:none!important;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 55px #000a;opacity:1;pointer-events:auto}body.sidebar-collapsed #result-sidebar{display:none!important}header #dataset{min-width:130px!important;flex-basis:130px!important}#simple-toolbar{flex-wrap:wrap!important;white-space:normal!important;overflow:visible!important}}
+
+@media(max-width:600px){body.experiment-mode .preview-grid{grid-template-columns:1fr;flex:none}body.experiment-mode .preview-card{min-height:250px;height:auto}body.experiment-mode .preview-card:last-child{grid-column:auto}body.experiment-mode .preview-card img{height:230px;min-height:230px;flex:none;object-fit:contain}}
+
+body.experiment-mode .depth-rail:not(.visible){display:none}

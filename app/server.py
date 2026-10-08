@@ -86,7 +86,7 @@ def getrun(run):
  return json.loads(p.read_text()),p.parent
 @lru_cache(maxsize=4)
 def run_array(run,kind):
- if kind not in ['processed','labels','ridge-response']:raise ValueError('Unknown result layer')
+ if kind not in ['processed','labels','ridge-response','skeleton']:raise ValueError('Unknown result layer')
  r,p=getrun(run)
  if r.get('historical'):
   if kind=='processed':raise ValueError('Earlier run has labels only; select raw image with overlay')
@@ -106,6 +106,21 @@ def number(v,lo,hi):
  if not np.isfinite(n) or n<lo or n>hi:raise ValueError('Parameter out of range')
  return n
 
+def processing_region(params, shape, factor):
+ """Native end-exclusive bounds aligned to the full-image block-mean grid."""
+ bounds=params.get('bounds')
+ if bounds is None:return None
+ if params.get('scope','volume')!='volume':raise ValueError('Selected regions require volume scope')
+ if not isinstance(bounds,list) or len(bounds)!=6:raise ValueError('Region needs X/Y/Z start and end bounds')
+ values=[]
+ for value,limit in zip(bounds,[shape[3],shape[2],shape[0]]*2):
+  n=number(value,0,limit)
+  if n!=int(n):raise ValueError('Region bounds must be integers')
+  values.append(int(n))
+ x0,y0,z0,x1,y1,z1=values
+ if x1<=x0 or y1<=y0 or z1<=z0:raise ValueError('Region end must be after its start')
+ return [x0//factor*factor,y0//factor*factor,z0,min(shape[3],(x1+factor-1)//factor*factor),min(shape[2],(y1+factor-1)//factor*factor),z1]
+
 def run_job(jid,params):
  job=JOBS[jid]
  try:
@@ -114,38 +129,87 @@ def run_job(jid,params):
   if factor not in [1,2,4]:raise ValueError('XY reduction must be 1, 2 or 4')
   mode=params.get('scope','volume');z=int(number(params.get('z',0),0,d['shape'][0]-1))
   if mode not in ['volume','projection','slice']:raise ValueError('Invalid processing scope')
-  sample_count=(d['shape'][0] if mode=='volume' else 1)*(d['shape'][2]//factor)*(d['shape'][3]//factor)
-  if sample_count>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the processing limit')
+  if d['shape'][2]%factor or d['shape'][3]%factor:raise ValueError('Image extent not divisible by reduction')
+  region=processing_region(params,d['shape'],factor)
+  full_shape=(d['shape'][0] if mode=='volume' else 1,d['shape'][2]//factor,d['shape'][3]//factor)
+  sample_count=int(np.prod(full_shape))
+  if sample_count>int(os.environ.get('STUDIO_LABEL_VOXELS','50000000')):raise ValueError('Choose lower XY resolution: the saved result grid exceeds the output voxel limit')
   parent=params.get('parent') or None
   if parent:
    old,_=getrun(parent)
    if old['dataset']!=key or old['scope']!='volume' or old['factor']!=factor or old['channel']!=ch or old.get('historical'):raise ValueError('Parent must be a current volume run on the same image, channel and XY reduction')
-   a=run_array(parent,'processed').copy();ch=old['channel']
+   if old.get('region_bounds'):
+    if mode!='volume':raise ValueError('Selected-region parents require volume scope')
+    if region is None:region=old['region_bounds']
+    b=old['region_bounds']
+    if any(region[i]<b[i] or region[i+3]>b[i+3] for i in range(3)):raise ValueError('Child region must stay within the parent region')
+  # Selected runs use the same XY context halo as previews, then discard the halo.
+  context_region=None;cut=None;target=None
+  if region:
+   x0,y0,z0,x1,y1,z1=region
+   margin=int(number(params.get('region_margin',16),0,512));halo=(margin+factor-1)//factor*factor
+   hx0,hy0,hx1,hy1=max(0,x0-halo),max(0,y0-halo),min(d['shape'][3],x1+halo),min(d['shape'][2],y1+halo)
+   context_region=[hx0,hy0,z0,hx1,hy1,z1]
+   working_count=(z1-z0)*((hy1-hy0)//factor)*((hx1-hx0)//factor)
+   if working_count>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Selected region including context exceeds the processing limit; reduce the region or XY resolution')
+   cut=(slice(None),slice((y0-hy0)//factor,(y1-hy0)//factor),slice((x0-hx0)//factor,(x1-hx0)//factor))
+   target=(slice(z0,z1),slice(y0//factor,y1//factor),slice(x0//factor,x1//factor))
+   if parent:a=run_array(parent,'processed')[z0:z1,hy0//factor:hy1//factor,hx0//factor:hx1//factor].copy()
+   else:
+    a=volume(key)[z0:z1,ch,hy0:hy1,hx0:hx1].astype(np.float32)
+    if factor>1:a=block_reduce(a,(1,factor,factor),np.mean).astype(np.float32)
+  elif parent:
+   if sample_count>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the processing limit')
+   a=run_array(parent,'processed').copy()
+   if mode=='slice':a=a[z:z+1]
   else:
+   if sample_count>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the processing limit')
    a=volume(key)[z:z+1,ch].astype(np.float32) if mode=='slice' else volume(key)[:,ch].astype(np.float32)
-   if factor>1:
-    if a.shape[1]%factor or a.shape[2]%factor:raise ValueError('Image extent not divisible by reduction')
-    a=block_reduce(a,(1,factor,factor),np.mean).astype(np.float32)
+   if factor>1:a=block_reduce(a,(1,factor,factor),np.mean).astype(np.float32)
   if mode=='projection':a=a.max(axis=0,keepdims=True)
-  if mode=='slice' and parent:a=a[z:z+1]
-  if a.size>int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')):raise ValueError('Choose a lower XY resolution or a single slice: this volume exceeds the browser processing limit')
   from processing import process
+  from neurites import METHODS as NEURITE_METHODS, RIDGE_METHODS, measure as measure_neurites, csv_bytes, NETWORK_FIELDS, BRANCH_FIELDS
   job['message']='Preprocessing and finding candidates'
   a,labels,score,threshold,effective=process(a,params,d,factor,lambda:job.get('cancel'))
+  if region:
+   a,labels,score=a[cut],labels[cut],score[cut]
+   # Halo-only components must not remain as gaps in saved label IDs.
+   ids=np.unique(labels);ids=ids[ids>0];mapping=np.zeros(int(labels.max())+1,np.uint32);mapping[ids]=np.arange(1,len(ids)+1)
+   labels=mapping[labels]
+   embedded=[]
+   for value in (a,labels,score):
+    output=np.zeros(full_shape,value.dtype);output[target]=value;embedded.append(output)
+   a,labels,score=embedded
   method=params.get('method','otsu');count=int(labels.max())
   if job.get('cancel'):job.update(status='canceled');return
-  folder=STORE/'runs'/jid;folder.mkdir(parents=True,exist_ok=False)
   spacing=[d['spacing'][0]*factor,d['spacing'][1]*factor,d['spacing'][2]]
-  tifffile.imwrite(folder/'processed.tif',a.astype(np.float32),ome=True,metadata=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2],'PhysicalSizeXUnit':'µm','PhysicalSizeYUnit':'µm','PhysicalSizeZUnit':'µm'} if d.get('calibrated',True) else {'axes':'ZYX'}))
-  if method=='sato':tifffile.imwrite(folder/'ridge-response.tif',np.asarray(score if score.ndim==3 else score[None],np.float32),ome=True,metadata=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2],'PhysicalSizeXUnit':'µm','PhysicalSizeYUnit':'µm','PhysicalSizeZUnit':'µm'} if d.get('calibrated',True) else {'axes':'ZYX'}))
-  tifffile.imwrite(folder/'labels.tif',labels,ome=True,metadata=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2]} if d.get('calibrated',True) else {'axes':'ZYX'}))
+  neurite_data=None
+  if method in NEURITE_METHODS:
+   job['message']='Measuring candidate neurite skeletons'
+   neurite_data=measure_neurites(labels,[spacing[2],spacing[1],spacing[0]],d.get('calibrated',False),effective['neurite_min_branch_length'],effective['neurite_pruning_units']=='µm')
+   if region:neurite_data[3].update(region_bounds=region,note='Lengths stop at the selected region and acquired Z boundaries.')
+  if job.get('cancel'):job.update(status='canceled');return
+  folder=STORE/'runs'/jid;folder.mkdir(parents=True,exist_ok=False)
+  image_meta=({'axes':'ZYX','PhysicalSizeX':spacing[0],'PhysicalSizeY':spacing[1],'PhysicalSizeZ':spacing[2],'PhysicalSizeXUnit':'µm','PhysicalSizeYUnit':'µm','PhysicalSizeZUnit':'µm'} if d.get('calibrated',False) else {'axes':'ZYX'})
+  tifffile.imwrite(folder/'processed.tif',a.astype(np.float32),ome=True,metadata=image_meta)
+  if method in RIDGE_METHODS:tifffile.imwrite(folder/'ridge-response.tif',score.astype(np.float32),ome=True,metadata=image_meta)
+  tifffile.imwrite(folder/'labels.tif',labels,ome=True,metadata=image_meta)
+  if neurite_data:
+   skeleton,networks,branches,neurite_summary=neurite_data
+   tifffile.imwrite(folder/'skeleton.tif',skeleton.astype(np.uint8),ome=True,metadata=image_meta)
+   export_context=dict(run_id=jid,dataset=key,channel=ch,scope=mode,source_sha256=checksum(key),region_bounds=region)
+   network_exports=[dict(**export_context,**row) for row in networks];branch_exports=[dict(**export_context,**row) for row in branches]
+   (folder/'neurites.csv').write_bytes(csv_bytes(network_exports,[*export_context,*NETWORK_FIELDS]));(folder/'neurite-branches.csv').write_bytes(csv_bytes(branch_exports,[*export_context,*BRANCH_FIELDS]))
+   atomic(folder/'neurite-summary.json',neurite_summary)
   rows=[]
   if count:
    ids=np.arange(1,count+1);sizes=np.bincount(labels.ravel());centers=ndi.center_of_mass(np.ones(labels.shape),labels,ids)
    for i,(zz,yy,xx) in zip(ids,centers):rows.append(dict(id=int(i),voxels=int(sizes[i]),x=xx*factor+(factor-1)/2,y=yy*factor+(factor-1)/2,z=(zz if mode=='volume' else z if mode=='slice' else None),status='candidate'))
   with (folder/'objects.csv').open('w') as f:
    writer=csv.DictWriter(f,fieldnames=['id','voxels','x','y','z','status']);writer.writeheader();writer.writerows(rows)
-  result=dict(id=jid,title=str(params.get('recipe_name') or method)[:100],dataset=key,source=DATA[key]['path'],sha256=checksum(key),created=time.time(),parameters=params,effective_parameters=effective,parent=parent,channel=ch,factor=factor,scope=mode,z=z,method=method,ridge_response=method=='sato',sato_mode=params.get('sato_mode','volume') if method=='sato' else None,spacing=spacing,shape=list(a.shape),objects=count,threshold=threshold,seconds=round(time.time()-job['created'],2),meaning='Connected network components, not neurons' if method=='sato' else 'Candidate regions, not reviewed cells',calibrated=d.get('calibrated',True),source_shape=d['shape'],transform={'scale':[factor,factor,1],'xy_translation':[(factor-1)/2]*2},software={'numpy':np.__version__,'tifffile':tifffile.__version__})
+  result=dict(id=jid,title=str(params.get('recipe_name') or method)[:100],dataset=key,source=DATA[key]['path'],sha256=checksum(key),created=time.time(),parameters=params,effective_parameters=effective,parent=parent,channel=ch,factor=factor,scope=mode,z=z,method=method,ridge_response=method in RIDGE_METHODS,sato_mode=params.get('sato_mode','volume') if method=='sato' else None,spacing=spacing,shape=list(a.shape),objects=count,threshold=threshold,seconds=round(time.time()-job['created'],2),meaning='Connected network components, not neurons' if method in (*NEURITE_METHODS,'sato') else 'Candidate regions, not reviewed cells',calibrated=d.get('calibrated',False),source_shape=d['shape'],transform={'scale':[factor,factor,1],'xy_translation':[(factor-1)/2]*2},software={'numpy':np.__version__,'tifffile':tifffile.__version__})
+  if region:result.update(region_bounds=region,context_bounds=context_region,run_region='selected')
+  if neurite_data:result['neurites']=neurite_summary
   atomic(folder/'run.json',result);persist(STORE,[folder]);job.update(status='completed',message='Saved result',result=result)
  except Exception as e:job.update(status='failed',error=str(e));traceback.print_exc()
 
@@ -369,7 +433,17 @@ class Handler(BaseHTTPRequestHandler):
   try:
    if not self.valid_host():raise ValueError('Invalid host')
    parsed=urlparse(self.path);path=parsed.path;q={k:v[0] for k,v in parse_qs(parsed.query).items()}
-   if path=='/api/config':return self.send(dict(shared=bool(os.environ.get('STUDIO_DEMO')),persistent=bool(STATE_REPO),storage='HF dataset' if STATE_REPO else 'local disk',process_limit=int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')),upload_limit_mb=int(os.environ.get('STUDIO_UPLOAD_MB','1024'))))
+   if path=='/api/config':return self.send(dict(shared=bool(os.environ.get('STUDIO_DEMO')),persistent=bool(STATE_REPO),storage='HF dataset' if STATE_REPO else 'local disk',process_limit=int(os.environ.get('STUDIO_PROCESS_VOXELS','268435456')),result_grid_limit=int(os.environ.get('STUDIO_LABEL_VOXELS','50000000')),upload_limit_mb=int(os.environ.get('STUDIO_UPLOAD_MB','1024'))))
+   if path=='/api/assistant/config':
+    from assistant import configuration
+    return self.send(configuration())
+   if path=='/api/neurites':
+    run,folder=getrun(q.get('run',''))
+    if not run.get('neurites'):raise ValueError('Choose a completed neurite measurement run')
+    return self.send(json.loads((folder/'neurite-summary.json').read_text()))
+   if path=='/api/run-explanation':
+    from reporting import explain
+    return self.send(explain(q))
    if path=='/api/recipes':return self.send([json.loads(p.read_text()) for p in (STORE/'recipes').glob('*.json')])
    if path=='/api/datasets':return self.send([dict(id=d['id'],name=d['name']) for d in DATA.values()])
    if path=='/api/dataset':return self.send(metadata(q['id']))
@@ -487,6 +561,10 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(import_labels(q,self.rfile.read(size)))
    if size>8_000_000:raise ValueError('Request too large')
    body=json.loads(self.rfile.read(size));path=urlparse(self.path).path
+   if path=='/api/assistant/chat':
+    from assistant import chat,authorized
+    if not authorized(self.headers.get('Authorization','')):return self.send({'error':'Assistant access token required. Check the server connection and token.'},403)
+    return self.send(chat(body))
    if path=='/api/object-decision':
     from measurements import save
     return self.send(save(body))
@@ -496,6 +574,9 @@ class Handler(BaseHTTPRequestHandler):
    if path in ('/api/correction-preview','/api/correction-save'):
     from corrections import preview,save
     return self.send(preview(body) if path.endswith('preview') else save(body))
+   if path=='/api/cleanup-compare':
+    from experiments import cleanup_compare
+    return self.send(cleanup_compare(body))
    if path=='/api/preview':
     from experiments import preview
     return self.send(preview(body))
@@ -506,7 +587,8 @@ class Handler(BaseHTTPRequestHandler):
     name=str(body.get('name','')).strip()[:100]
     if not name:raise ValueError('Name your recipe')
     recipe=dict(id=uuid.uuid4().hex,name=name,cell_type=str(body.get('cell_type',''))[:100],parameters=body.get('parameters',{}),created=time.time())
-    if recipe['parameters'].get('method') not in ['otsu','watershed','sato','preprocess']:raise ValueError('Unsupported method')
+    from processing import METHODS
+    if recipe['parameters'].get('method') not in METHODS:raise ValueError('Unsupported method')
     folder=STORE/'recipes';folder.mkdir(exist_ok=True);path=folder/(recipe['id']+'.json');atomic(path,recipe)
     try:persist(STORE,[path])
     except Exception:path.unlink();raise

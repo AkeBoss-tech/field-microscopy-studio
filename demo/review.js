@@ -1,7 +1,7 @@
 'use strict';
 // Review corrections create new label revisions; source pixels and original runs stay immutable.
 const reviewState={dataset:null,x:0,y:0,contrast:'auto',depthScale:1,zoom:1,data:null,images:null,host:null,timer:null,busy:false,pending:null,serial:0,signature:null};
-const intensityKinds=[['raw','Raw source'],['processed','Processed intensity'],['ridge-response','Ridge response']];
+const intensityKinds=[['raw','Raw source'],['processed','Processed intensity'],['ridge-response','Ridge response'],['skeleton','Original measured centerline']];
 const layerLabel=document.createElement('label');layerLabel.className='intensity-control';layerLabel.append(document.createTextNode('Image layer '));
 const layerSelect=document.createElement('select');layerSelect.id='intensity-layer';layerSelect.setAttribute('aria-label','Image layer');layerLabel.append(layerSelect);
 $('#simple-toolbar').insertBefore(layerLabel,$('#compare-raw').closest('label'));
@@ -12,7 +12,7 @@ const contextLine=document.createElement('div');contextLine.id='analysis-context
 function refreshLayerControls(){
  if(!state.meta)return;
  const r=runMeta(),current=state.image;
- const available=intensityKinds.filter(([key])=>key==='raw'||(r&&!r.historical&&(key!=='ridge-response'||r.ridge_response)));
+ const available=intensityKinds.filter(([key])=>key==='raw'||(r&&!r.historical&&(key!=='ridge-response'||r.ridge_response)&&(key!=='skeleton'||r.neurites)));
  const signature=available.map(([key])=>key).join(',');
  if(layerSelect.dataset.options!==signature){layerSelect.replaceChildren(...available.map(([key,title])=>new Option(title,key)));layerSelect.dataset.options=signature}
  if(!available.some(([key])=>key===current))state.image='raw';layerSelect.value=state.image;
@@ -25,7 +25,7 @@ function refreshLayerControls(){
  for(const el of [$('#compare-raw').closest('label'),$('#comparison'),$('#compare-grid')])el.hidden=review||annotation;
  document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===state.tab);b.setAttribute('aria-pressed',String(b.dataset.tab===state.tab))});
  const layer=intensityKinds.find(([key])=>key===state.image)?.[1]||'Raw source';
- contextLine.textContent=state.meta.name+' · C'+(state.channel+1)+' '+state.meta.channels[state.channel]+' · '+(r?(r.title||r.method)+' / '+r.id.slice(0,8)+' · '+(r.scope==='volume'?'all '+state.meta.shape[0]+' Z · '+r.factor+'× XY':r.scope==='slice'?'plane '+(r.z+1):'2D projection'):'original source')+' · '+layer+(hasMask&&state.overlay!=='none'?' + candidate labels':'');
+ contextLine.textContent=state.meta.name+' · C'+(state.channel+1)+' '+state.meta.channels[state.channel]+' · '+(r?(r.title||r.method)+' / '+r.id.slice(0,8)+' · '+(r.scope==='volume'?(runHasRegion(r)?'selected 3D region': 'all '+state.meta.shape[0]+' Z')+' · '+r.factor+'× XY':r.scope==='slice'?'plane '+(r.z+1):'2D projection'):'original source')+' · '+layer+(hasMask&&state.overlay!=='none'?' + candidate labels':'');
  if(state.tab==='Process')contextLine.textContent+=' · Form at right: next run draft';
 }
 layerSelect.onchange=()=>{state.image=layerSelect.value;$('#image').value=state.image==='raw'?'raw':'processed';refreshLayerControls();scheduleDraw()};
@@ -101,12 +101,23 @@ async function flushReview(){
 }
 function showObjectInspector(data){
  const box=$('#object-inspector');if(!box)return;box.replaceChildren();const r=runMeta(),obj=data.object;
- const title=document.createElement('h3');title.textContent=obj?'Candidate #'+obj.id:r&&r.method!=='preprocess'?'No label at this voxel':'Intensity inspection';box.append(title);
- function row(name,value){const p=document.createElement('p'),b=document.createElement('strong');b.textContent=name+' ';p.append(b,document.createTextNode(value));box.append(p)}
- row('Source value:',String(data.source_intensity));if(data.layer!=='raw')row('Layer value:',Number(data.result_value).toPrecision(5));
- if(obj){row('Size:',obj.voxels.toLocaleString()+' processing-grid voxels · '+data.factor+'× XY');row('Volume:',obj.volume_um3===null?'Uncalibrated; physical volume unavailable':obj.volume_um3.toLocaleString(undefined,{maximumFractionDigits:2})+' µm³');row('Native bounds:',obj.bounds_native[0].join(', ')+' → '+obj.bounds_native[1].join(', ')+' (end exclusive)');row('Processed-volume edges:',obj.boundary_faces.length?obj.boundary_faces.join(', '):'None');row('Review status:',obj.status.replaceAll('_',' '))}
- else if(r&&r.method!=='preprocess'){const p=document.createElement('p');p.textContent='Click a labeled voxel in any plane. Gold highlights the selected object across all views.';box.append(p)}
- if(r){row('Run:',(r.title||r.method)+' · '+r.id.slice(0,8));row('Output:',r.method==='preprocess'?'Processed intensity · no segmentation':data.objects+' '+(r.method==='sato'?'connected networks':'candidate regions'));box.append(link('runs/'+r.id+'/run.json','Recipe & provenance'));if(r.method!=='preprocess')box.append(link('runs/'+r.id+'/objects.csv','Original algorithm CSV'))}
+ const title=document.createElement('h3');title.textContent=obj?'Candidate #'+obj.id:r&&r.method!=='preprocess'?'No candidate here':'Intensity inspection';box.append(title);
+ const format=value=>value==null?'—':Number(value).toLocaleString(undefined,{maximumFractionDigits:2});
+ const details=document.createElement('details');details.className='inspector-more';const summary=document.createElement('summary');summary.textContent='Shape & source details';details.append(summary);
+ function row(name,value,host=details){const p=document.createElement('p'),b=document.createElement('strong');b.textContent=name; p.append(b,document.createTextNode(value));host.append(p)}
+ if(obj){
+  const status=document.createElement('span');status.className='decision-badge inspector-status '+obj.status;status.textContent=obj.status.replaceAll('_',' ');box.append(status);
+  const metrics=document.createElement('dl');metrics.className='inspector-metrics';
+  const keyFacts=obj.network_length_grid!=null?[['Skeleton length',obj.network_length_um==null?format(obj.network_length_grid)+' grid units':format(obj.network_length_um)+' µm'],['Branches',format(obj.network_branches)],['Endpoints',format(obj.network_endpoints)],['Junctions',format(obj.network_junctions)]]:[['Volume',obj.volume_um3==null?'Uncalibrated':format(obj.volume_um3)+' µm³'],['XY area',format(obj.xy_area)+' '+(data.calibrated?'µm²':'px²')],['XY circularity',format(obj.xy_circularity)],['XY aspect ratio',format(obj.xy_aspect_ratio)]];
+  for(const [label,value] of keyFacts){const tile=document.createElement('div'),name=document.createElement('dt'),number=document.createElement('dd');name.textContent=label;number.textContent=value;tile.append(name,number);metrics.append(tile)}box.append(metrics);
+  const basis=document.createElement('p');basis.className='inspector-basis';basis.textContent=obj.network_length_grid!=null?'Connected skeleton geometry; crossing neurites may be joined.':'Shape describes the XY footprint across Z.';box.append(basis);
+  if(obj.boundary_faces.length){const flags=document.createElement('p');flags.className='inspector-edge-flag';flags.textContent='Touches '+obj.boundary_faces.length+' analysis '+(obj.boundary_faces.length===1?'edge':'edges');flags.title=obj.boundary_faces.join(', ');box.append(flags)}
+  if(obj.network_length_grid!=null){row('XY area',format(obj.xy_area)+' '+(data.calibrated?'µm²':'px²'));row('XY circularity',format(obj.xy_circularity));row('XY aspect ratio',format(obj.xy_aspect_ratio))}
+  row('XY perimeter',format(obj.xy_perimeter)+' '+(obj.morphology_units||'px'));row('XY solidity',format(obj.xy_solidity));row('XY eccentricity',format(obj.xy_eccentricity));row('XY equivalent diameter',format(obj.xy_equivalent_diameter)+' '+(obj.morphology_units||'px'));row('3D bounding-box fill',format(obj.bbox_extent_3d*100)+'%');
+  row('Mask size',obj.voxels.toLocaleString()+' working-grid voxels · '+data.factor+'× XY');row('Native XYZ bounds',obj.bounds_native[0].join(', ')+' → '+obj.bounds_native[1].join(', ')+' (end exclusive)');row('Volume edge contact',obj.boundary_faces.join(', ')||'None');
+ }else if(r&&r.method!=='preprocess'){const p=document.createElement('p');p.textContent='Select a candidate in the table or click its mask in a plane.';box.append(p)}
+ row('Source intensity',String(data.source_intensity));if(data.layer!=='raw')row('Layer intensity',Number(data.result_value).toPrecision(5));
+ if(r){row('Run',(r.title||r.method)+' · '+r.id.slice(0,8));details.append(link('runs/'+r.id+'/run.json','Recipe & provenance'))}box.append(details);
  const label=data.calibrated?'µm':'voxel units';$('#review-window-info').textContent='Source spacing XYZ: '+data.spacing.map(v=>Number(v).toPrecision(4)).join(' × ')+' '+label+'. Display windows: raw ['+data.source_window.map(v=>v.toPrecision(4)).join(', ')+']; result ['+data.result_window.map(v=>v.toPrecision(4)).join(', ')+']. Display settings do not alter pixels.';
 }
 function drawReviewCanvases(){

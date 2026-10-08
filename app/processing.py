@@ -4,9 +4,13 @@ import numpy as np
 from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 from skimage.feature import peak_local_max
-from skimage.filters import threshold_otsu, sato
-from skimage.morphology import remove_small_objects
+from skimage.filters import threshold_otsu, threshold_local, sato
+from skimage.morphology import remove_small_objects, h_maxima
 from skimage.segmentation import watershed
+from neurites import METHODS as NEURITE_METHODS, segment as neurite_segment
+
+INSTANCE_METHODS = ('otsu', 'watershed', 'adaptive_regions', 'prominence_watershed', 'external')
+METHODS = ('preprocess', *INSTANCE_METHODS[:-1], 'sato', *NEURITE_METHODS)
 
 
 def number(value, low, high):
@@ -70,7 +74,7 @@ def process(array, params, metadata, factor, cancelled=None):
         low, high = np.percentile(a, [1, 99.5])
         a = np.clip((a-low) / max(high-low, 1e-12), 0, 1)
     method = params.get('method', 'otsu')
-    if method not in ['preprocess', 'otsu', 'watershed', 'sato']:
+    if method not in METHODS:
         raise ValueError('Unknown algorithm')
     labels = np.zeros(a.shape, np.uint32)
     threshold = None
@@ -80,23 +84,54 @@ def process(array, params, metadata, factor, cancelled=None):
     if method != 'preprocess':
         x = a if dimensionality == 3 else a[0]
         sato_mode = params.get('sato_mode', 'volume')
-        if method == 'sato':
+        if method in NEURITE_METHODS:
+            labels, score, threshold = neurite_segment(a, params, metadata, factor, effective)
+        elif method == 'sato':
             if sato_mode not in ['slice', 'volume']:
                 raise ValueError('Invalid Sato dimensional mode')
             score = np.stack([sato(p, sigmas=[1, 2], black_ridges=False) for p in x]) if x.ndim == 3 and sato_mode == 'slice' else sato(x, sigmas=[1, 2], black_ridges=False)
         else:
             score = x
-        threshold = float(threshold_otsu(score)) * number(params.get('threshold', 1), .1, 4)
-        mask = remove_small_objects(score > threshold, min_size=effective['min_size'])
-        if method == 'watershed':
+        if method not in NEURITE_METHODS:
+            threshold = float(threshold_otsu(score)) * number(params.get('threshold', 1), .1, 4)
+            mask = score > threshold
+            if method == 'adaptive_regions':
+                block = int(number(params.get('local_window', 31), 3, 511))
+                if block % 2 == 0:
+                    raise ValueError('Local window must be odd')
+                offset = number(params.get('local_offset', 0), -10000, 10000)
+                floor = number(params.get('local_floor', .5), 0, 2)
+                local = np.stack([threshold_local(plane, block, offset=offset) for plane in a])
+                if dimensionality == 2:
+                    local = local[0]
+                mask = (score > local) & (score > threshold * floor)
+                effective.update(local_window=block, local_offset=offset, local_floor=floor,
+                                 threshold_kind='per-XY Gaussian local threshold plus global Otsu floor')
+            mask = remove_small_objects(mask, min_size=effective['min_size'])
+        if method in ('watershed', 'prominence_watershed'):
             spacing = effective['spacing_zyx'] if dimensionality == 3 else effective['spacing_zyx'][1:]
-            dist = ndi.distance_transform_edt(mask, sampling=spacing)
-            peaks = physical_peaks(dist, mask, spacing, effective['seed_distance']) if effective['units'] == 'physical' else peak_local_max(dist, min_distance=effective['seed_distance'], labels=mask, exclude_border=False)
+            dist = ndi.distance_transform_edt(mask, sampling=spacing if effective['units'] == 'physical' else None)
             markers = np.zeros(mask.shape, np.int32)
-            if len(peaks):
-                markers[tuple(peaks.T)] = np.arange(1, len(peaks)+1)
+            if method == 'watershed':
+                peaks = physical_peaks(dist, mask, spacing, effective['seed_distance']) if effective['units'] == 'physical' else peak_local_max(dist, min_distance=effective['seed_distance'], labels=mask, exclude_border=False)
+                if len(peaks):
+                    markers[tuple(peaks.T)] = np.arange(1, len(peaks)+1)
+            if method == 'prominence_watershed':
+                prominence = number(params.get('peak_prominence', .5), .001, 1000)
+                effective['peak_prominence'] = prominence
+                markers = ndi.label(h_maxima(dist, prominence) & mask)[0] if mask.any() else np.zeros(mask.shape, np.int32)
+                # Keep foreground components even when none of their peaks reaches h.
+                components, count = ndi.label(mask)
+                seeded = set(np.unique(components[markers > 0]))
+                next_id = int(markers.max())
+                for component, region in enumerate(ndi.find_objects(components), 1):
+                    if region is not None and component not in seeded:
+                        local_mask = components[region] == component
+                        position = np.unravel_index(np.argmax(np.where(local_mask, dist[region], -1)), local_mask.shape)
+                        next_id += 1
+                        markers[region][position] = next_id
             labels = watershed(-dist, markers, mask=mask).astype(np.uint32)
-        else:
+        elif method not in NEURITE_METHODS:
             labels = ndi.label(mask)[0].astype(np.uint32)
         if effective['min_final_size']:
             sizes = np.bincount(labels.ravel())

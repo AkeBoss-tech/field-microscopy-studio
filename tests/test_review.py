@@ -46,6 +46,8 @@ class VolumeReviewChecks(unittest.TestCase):
         s.run_array.cache_clear()
         review.object_index.cache_clear()
         review.display_window.cache_clear()
+        review.morphology_index.cache_clear()
+        review.network_index.cache_clear()
         s.DATA.pop(self.key)
 
     def test_exact_planes_and_block_mapping(self):
@@ -72,6 +74,56 @@ class VolumeReviewChecks(unittest.TestCase):
         self.assertEqual(data['planes']['yz']['size'], [8, 5])
         im = Image.open(io.BytesIO(base64.b64decode(data['planes']['xz']['png'])))
         self.assertEqual(im.size, (12, 5))
+        # This 3-Z object projects to 6 XY grid pixels at 1 x 1.5 µm spacing.
+        self.assertEqual(obj['xy_area_um2'], 9.)
+        self.assertAlmostEqual(obj['xy_eccentricity'], 0.)
+        self.assertAlmostEqual(obj['xy_aspect_ratio'], 1.)
+        self.assertEqual(obj['bbox_extent_3d'], 1.)
+
+    def test_xy_shape_uses_footprint_not_z_depth_and_physical_axes(self):
+        rectangular = np.ones((1, 3, 6), bool)
+        repeated = np.repeat(rectangular, 9, axis=0)
+        a = review.footprint_morphology(rectangular, (1., 2.))
+        b = review.footprint_morphology(repeated, (1., 2.))
+        self.assertEqual(a, b)
+        self.assertEqual(a['xy_area'], 36.)
+        self.assertAlmostEqual(a['xy_aspect_ratio'], 1.)
+        self.assertAlmostEqual(a['xy_eccentricity'], 0.)
+        self.assertAlmostEqual(a['xy_solidity'], 1.)
+        stretched = review.footprint_morphology(rectangular, (2., 1.))
+        self.assertAlmostEqual(stretched['xy_aspect_ratio'], 4.)
+        self.assertTrue(0 < stretched['xy_circularity'] < a['xy_circularity'] < 1)
+
+    def test_circularity_holes_and_small_masks_remain_well_defined(self):
+        y, x = np.mgrid[-30:31, -30:31]
+        disk = x*x+y*y <= 25**2
+        full = review.footprint_morphology(disk)
+        ring = review.footprint_morphology(disk & (x*x+y*y > 10**2))
+        # Half-pixel contours retain digitization effects rather than smoothing
+        # the measured outline into a mathematically ideal circle.
+        self.assertGreater(full['xy_circularity'], .85)
+        self.assertLess(ring['xy_circularity'], full['xy_circularity'])
+        self.assertLess(ring['xy_solidity'], full['xy_solidity'])
+        single = review.footprint_morphology(np.ones((1, 1), bool))
+        self.assertTrue(0 < single['xy_circularity'] <= 1)
+        self.assertEqual(single['xy_area'], 1.)
+        self.assertEqual(single['xy_contour_area'], .5)
+
+    def test_selected_region_faces_are_flagged_without_acquired_edge_contact(self):
+        s.atomic(s.STORE/'runs'/self.rid/'run.json', {**self.run, 'region_bounds':[4, 2, 1, 10, 6, 4]})
+        obj = review.inspect_volume(self.q)['object']
+        self.assertEqual(len(obj['boundary_faces']), 6)
+        self.assertTrue(all(face.startswith('Region ') for face in obj['boundary_faces']))
+        self.assertEqual(obj['volume_um3'], 54)
+
+    def test_saved_run_calibration_stays_authoritative(self):
+        s.atomic(s.STORE/'runs'/self.rid/'run.json', {**self.run, 'spacing':[1., 1.5, 2.], 'calibrated':True})
+        s.DATA[self.key].update(spacing=[1., 1., 1.], calibrated=False)
+        data=review.inspect_volume(self.q)
+        self.assertTrue(data['calibrated'])
+        self.assertEqual(data['spacing'], [.5, .75, 2.])
+        self.assertEqual(data['object']['volume_um3'], 54.)
+        self.assertEqual(data['object']['xy_area_um2'], 9.)
 
     def test_boundary_and_uncalibrated(self):
         s.DATA[self.key]['calibrated'] = False
@@ -113,6 +165,16 @@ class VolumeReviewChecks(unittest.TestCase):
         data = review.inspect_volume({**self.q, 'layer': 'ridge-response'})
         self.assertAlmostEqual(data['result_value'], self.processed[2, 1, 2]/1000, places=6)
         self.assertNotEqual(data['result_window'], data['source_window'])
+
+    def test_centerline_layer_uses_binary_display_window(self):
+        with self.assertRaisesRegex(ValueError, 'centerline'):
+            review.inspect_volume({**self.q, 'layer':'skeleton'})
+        s.atomic(s.STORE/'runs'/self.rid/'run.json', {**self.run, 'method':'neurite_otsu', 'neurites':{'networks':2}})
+        skeleton=(self.labels > 0).astype(np.uint8)
+        s.tifffile.imwrite(s.STORE/'runs'/self.rid/'skeleton.tif', skeleton)
+        data=review.inspect_volume({**self.q, 'layer':'skeleton', 'contrast':'raw'})
+        self.assertEqual(data['result_window'], (0., 1.))
+        self.assertEqual(data['result_value'], 1.)
 
 
 if __name__ == '__main__':

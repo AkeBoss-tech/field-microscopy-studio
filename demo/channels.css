@@ -1,0 +1,9 @@
+.channels-menu .dropdown-body{width:340px;max-width:calc(100vw - 24px);padding:16px;max-height:min(75vh,680px)}
+.channels-menu h3{margin:0 0 12px;font-size:16px}.channel-shortcuts{display:flex;gap:8px;margin:12px 0}
+.channel-card{padding:12px 0;border-top:1px solid var(--border,#30363d)}.channel-card.active .channel-name{color:var(--blue,#91b7ff)}
+.channel-card .channel-color-row{display:grid;grid-template-columns:20px minmax(0,1fr) 32px;gap:8px;margin:0;padding:0;border:0}
+.channel-name{background:none!important;border:0!important;padding:2px!important;min-width:0;text-align:left;white-space:normal;font-weight:600}
+.channel-purpose{display:block;color:var(--muted,#91a0ae);padding:5px 0 8px 28px}.channel-adjust-fold summary{font-size:12px;color:var(--muted,#91a0ae);cursor:pointer}
+.channel-card .channel-adjust{margin-top:12px;display:grid;gap:10px}.channel-card input[type=text]{width:100%;min-width:0}
+.channel-include{display:flex!important;align-items:center;gap:8px}.channel-card .channel-adjust label{margin:0}
+.channel-card input[type=color]{width:32px;height:30px;padding:2px}.channels-menu .muted{font-size:11px;line-height:1.5}

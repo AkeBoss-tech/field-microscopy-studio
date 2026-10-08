@@ -5,3 +5,6 @@ __pycache__/
 store/
 .cache/
 .DS_Store
+
+# Local verification logs and screenshots, not application assets.
+outputs/

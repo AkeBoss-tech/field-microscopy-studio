@@ -416,3 +416,19 @@ body.sidebar-collapsed #result-sidebar{flex-basis:0!important;min-width:0!import
  #simple-toolbar .comparison-launch{padding-left:10px;padding-right:10px}
 }
 @media(max-width:1380px){#simple-toolbar .results-toggle span{display:none}#simple-toolbar .comparison-launch{font-size:0}#simple-toolbar .comparison-launch::before{content:'A/B';font-size:12px}}
+/* Process stage controls scroll together; execution actions stay anchored. */
+body[data-workspace=process] #task-panel .algo-overview{margin:0 18px;display:block}
+body[data-workspace=process] #task-panel .algo-overview:has(.algo-running[hidden]){display:none}
+body[data-workspace=process] #task-panel .algo-pipeline-box{display:block;margin:8px 18px;padding-top:0;flex:none}
+body[data-workspace=process] #task-panel .algo-pipeline-box>summary{padding:11px 0}
+body[data-workspace=process] #task-panel .algo-pipeline{padding:3px 0 10px}
+body[data-workspace=process] #task-panel .algo-pipeline li{cursor:default;animation:none;grid-template-columns:22px 75px 1fr}
+body[data-workspace=process] #task-panel .algo-pipeline li:hover{background:transparent}
+body[data-workspace=process] #task-panel .exp-form-heading{background:var(--surface-2)!important;padding:17px 18px 13px}
+body[data-workspace=process] #task-panel .exp-form-heading h2{font-size:20px}
+body[data-workspace=process] #task-panel .exp-section{border-color:var(--line)}
+body[data-workspace=process] #task-panel .experiment-settings{flex:1;overflow:auto;min-height:0}
+body[data-workspace=process] #task-panel .experiment-actions{flex:none}
+body[data-workspace=process] .experiment-source{min-height:280px}
+body[data-workspace=process] .experiment-host{min-height:0}
+@media(max-width:800px){body[data-workspace=process] #task-panel .experiment-settings{overflow:visible}.comparison-controls{grid-template-columns:1fr 1fr}}

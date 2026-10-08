@@ -1,4 +1,5 @@
 """Candidate measurements, review decisions, and explicit counting protocols."""
+from processing import INSTANCE_METHODS
 import csv
 import io
 import json
@@ -7,7 +8,7 @@ import uuid
 from functools import lru_cache
 
 import numpy as np
-from review import object_index, _integer
+from review import object_index, morphology_index, network_index, _integer
 from corrections import current as correction_current, label_array
 
 STATUSES = ('unreviewed', 'accepted', 'rejected', 'needs_review')
@@ -68,7 +69,7 @@ def count_summary(run, rows, protocol):
     policy = protocol.get('edge_policy', '')
     included = [o for o in rows if policy != 'exclude' or not o['boundary_faces']]
     statuses = {name: sum(o['status'] == name for o in included) for name in STATUSES}
-    ready = bool(protocol.get('revision') and run['method'] in ('otsu', 'watershed', 'external')
+    ready = bool(protocol.get('revision') and run['method'] in INSTANCE_METHODS
                  and not statuses['unreviewed'] and not statuses['needs_review'])
     return dict(ready=ready, accepted_so_far=statuses['accepted'],
                 reviewed_count=statuses['accepted'] if ready else None,
@@ -83,7 +84,7 @@ def count_summary(run, rows, protocol):
 def save_protocol(q):
     import server as s
     run, folder, _ = context(q)
-    if run['method'] not in ('otsu', 'watershed', 'external'):
+    if run['method'] not in INSTANCE_METHODS:
         raise ValueError('A body or nucleus count requires instance candidates')
     target = str(q.get('target', '')).strip()
     role = str(q.get('channel_role', '')).strip()
@@ -130,30 +131,36 @@ def query_rows(q):
         protocol = protocol_current(folder)
     spacing = r.get('spacing') or [d['spacing'][0]*r['factor'], d['spacing'][1]*r['factor'], d['spacing'][2]]
     calibrated = r.get('calibrated', d.get('calibrated', False))
+    shape_spacing = tuple(spacing) if calibrated else (r['factor'], r['factor'], 1.)
+    morphology = morphology_index(str(s.STORE), r['id'], correction['revision'], shape_spacing, bool(calibrated))
+    networks = network_index(str(s.STORE), r['id'], correction['revision'], shape_spacing, bool(calibrated))
     rows = []
     counts = dict.fromkeys(STATUSES, 0)
     for obj in geometry(str(s.STORE), r['id'], correction['revision']):
         decision = decision_for(snapshot, correction, obj['id'])
         status = decision.get('status', 'unreviewed')
         counts[status] += 1
-        rows.append(dict(obj, status=status, note=decision.get('note', ''),
+        rows.append(dict(obj, **morphology[obj['id']], **networks.get(obj['id'], {}), status=status, note=decision.get('note', ''),
                          volume_um3=float(obj['voxels']*np.prod(spacing)) if calibrated else None))
     total = len(rows)
     count = count_summary(r, rows, protocol)
     status = q.get('status', 'all')
-    if status not in ('all',) + STATUSES:
+    if status not in ('all', 'unresolved') + STATUSES:
         raise ValueError('Unknown review status filter')
     boundary = q.get('boundary', 'all')
     if boundary not in ('all', 'interior', 'edge'):
         raise ValueError('Unknown boundary policy')
     search = str(q.get('search', '')).strip()
-    rows = [o for o in rows if (status == 'all' or o['status'] == status)
+    rows = [o for o in rows if (status == 'all' or o['status'] == status or (status == 'unresolved' and o['status'] in ('unreviewed', 'needs_review')))
             and (boundary == 'all' or bool(o['boundary_faces']) == (boundary == 'edge'))
             and (not search or search == str(o['id']))]
     sort = q.get('sort', 'id')
-    if sort not in ('id', 'size_asc', 'size_desc'):
+    if sort not in ('id', 'size_asc', 'size_desc', 'circularity_asc', 'circularity_desc'):
         raise ValueError('Unknown measurement sort')
-    rows.sort(key=lambda o: ((-o['voxels'] if sort == 'size_desc' else o['voxels']), o['id']) if sort != 'id' else (o['id'],))
+    if sort.startswith('circularity_'):
+        rows.sort(key=lambda o: ((-1 if sort.endswith('desc') else 1)*(o['xy_circularity'] or 0), o['id']))
+    else:
+        rows.sort(key=lambda o: ((-o['voxels'] if sort == 'size_desc' else o['voxels']), o['id']) if sort != 'id' else (o['id'],))
     return r, snapshot, correction, protocol, count, counts, total, rows
 
 
@@ -165,11 +172,14 @@ def table(q):
         raise ValueError('Page size must be positive')
     # A different reviewer can shrink this selection between page requests.
     offset = min(requested_offset, ((max(1, len(rows))-1)//limit)*limit)
+    after = _integer(q.get('after', 0), 1_000_000_000, 'Candidate cursor')
+    ids = sorted(o['id'] for o in rows)
+    next_id = next((i for i in ids if i > after), ids[0] if ids else None)
     sizes = [o['voxels'] for o in rows]
     return dict(run=r['id'], revision=snapshot['revision'], label_revision=correction['revision'],
                 protocol_revision=protocol['revision'], protocol=protocol, count=count,
                 counts=counts, total=total,
-                matched=len(rows), offset=offset, rows=rows[offset:offset+limit],
+                next_candidate=next_id, matched=len(rows), offset=offset, rows=rows[offset:offset+limit],
                 summary=dict(voxels=sum(sizes), median_voxels=float(np.median(sizes)) if sizes else None,
                              edge_count=sum(bool(o['boundary_faces']) for o in rows)),
                 meaning=r['meaning'])
@@ -258,7 +268,12 @@ def csv_export(q):
               'label_revision', 'protocol_revision', 'count_target', 'channel_role', 'count_edge_policy',
               'included_in_count', 'object_id',
               'status', 'note', 'voxels', 'volume_um3', 'bounds_native_xyz_end_exclusive',
-              'boundary_faces', 'status_filter', 'boundary_policy', 'xy_factor', 'method']
+              'boundary_faces', 'status_filter', 'boundary_policy', 'xy_factor', 'method',
+              'morphology_basis', 'morphology_units', 'xy_area', 'xy_contour_area', 'xy_perimeter',
+              'xy_area_um2', 'xy_perimeter_um', 'xy_circularity', 'xy_solidity', 'xy_eccentricity',
+              'xy_aspect_ratio', 'xy_major_axis', 'xy_minor_axis', 'xy_equivalent_diameter', 'bbox_extent_3d',
+              'network_length_um', 'network_length_grid', 'network_branches', 'network_endpoints',
+              'network_junctions', 'network_metrics_basis']
     output = io.StringIO(newline='')
     writer = csv.DictWriter(output, fieldnames=fields)
     writer.writeheader()
@@ -278,6 +293,7 @@ def csv_export(q):
                    bounds_native_xyz_end_exclusive=json.dumps(o['bounds_native']), boundary_faces='; '.join(o['boundary_faces']),
                    status_filter=q.get('status', 'all'), boundary_policy=q.get('boundary', 'all'),
                    xy_factor=r['factor'], method=r['method'])
+        row.update({key:o[key] for key in fields if key in o and key.startswith(('xy_', 'morphology_', 'bbox_', 'network_'))})
         writer.writerow({k:cell(v) for k,v in row.items()})
     return output.getvalue().encode('utf-8-sig')
 

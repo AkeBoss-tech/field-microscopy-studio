@@ -3,6 +3,7 @@ import os
 import numpy as np
 from skimage.measure import block_reduce
 from processing import process
+from neurites import RIDGE_METHODS
 from review import _integer, encode_plane, display_window
 
 
@@ -72,7 +73,7 @@ def preview(body):
     if mode not in ['auto','raw']:
         raise ValueError('Unknown intensity window')
     method = params.get('method','otsu')
-    result = score if method == 'sato' else processed
+    result = score if method in RIDGE_METHODS else processed
     result_window = raw_window if mode == 'raw' else window(result)
     size = (x1-x0,y1-y0)
     planes = []
@@ -84,7 +85,7 @@ def preview(body):
                 parameters=params,effective_parameters=effective,threshold=threshold,working_voxels=samples,
                 candidates=int(np.count_nonzero(np.unique(labels))),foreground_fraction=float(np.mean(labels>0)),
                 source_window=raw_window,result_window=result_window,planes=planes,
-                result_layer='Ridge response' if method=='sato' else 'Processed intensity',preview=True,
+                result_layer='Ridge response' if method in RIDGE_METHODS else 'Processed intensity',preview=True,
                 note='Unsaved crop experiment. Thresholds and connected regions depend on this context; a full run can differ. Labels may be cut by the region or Z limits.')
 
 
@@ -93,7 +94,7 @@ def compare(body):
     key, d, ch = source(body)
     z = _integer(body.get('z',0),d['shape'][0],'Z')
     layer = body.get('layer','raw')
-    if layer not in ['raw','processed','ridge-response']:
+    if layer not in ['raw','processed','ridge-response','skeleton']:
         raise ValueError('Unknown intensity layer')
     contrast = body.get('contrast','shared')
     if contrast not in ['shared','auto']:
@@ -104,7 +105,9 @@ def compare(body):
         if run['dataset']!=key or run['channel']!=ch or run['scope']!='volume' or run.get('historical'):
             raise ValueError('Compare two current full-volume runs from the active image and channel')
         if layer=='ridge-response' and not run.get('ridge_response'):
-            raise ValueError('Ridge comparison needs two Sato runs; choose another image layer')
+            raise ValueError('Ridge comparison needs two Sato or neurite ridge runs; choose another image layer')
+        if layer=='skeleton' and not run.get('neurites'):
+            raise ValueError('Centerline comparison needs two neurite measurement runs')
         a, _ = s.array_for(key,ch,run['id'] if layer!='raw' else None,layer if layer!='raw' else 'processed')
         arrays.append(a[z]); masks.append(None if run['method']=='preprocess' else s.run_array(run['id'],'labels')[z]); runs.append(run)
     windows = [window(a) for a in arrays]
@@ -123,3 +126,25 @@ def compare(body):
     # Full-volume runs process every acquired plane; their saved starting Z is UI context.
     differences = [dict(parameter=k,a=runs[0]['parameters'].get(k),b=runs[1]['parameters'].get(k)) for k in keys if runs[0]['parameters'].get(k)!=runs[1]['parameters'].get(k) and k not in ['dataset','channel','recipe_name','z']]
     return dict(z=z,panes=panes,differences=differences,layer=layer,contrast=contrast)
+
+
+def cleanup_compare(body):
+    """Four controlled preparation variants; same source, region and raw window."""
+    params = dict(body.get('parameters', {}))
+    if params.get('parent'):
+        raise ValueError('Choose original source before comparing cleanup options')
+    if params.get('method', 'otsu') not in ('preprocess', 'otsu', 'watershed', 'adaptive_regions', 'prominence_watershed'):
+        raise ValueError('Cleanup comparison supports intensity, connected regions, local regions and watershed methods')
+    from processing import number
+    physical = params.get('units') == 'physical'
+    skey, bkey = ('sigma_um', 'background_um') if physical else ('sigma', 'background')
+    smooth = number(body.get('smooth'), .001, 100 if physical else 5)
+    background = number(body.get('background'), .001, 500 if physical else 64)
+    if background <= smooth:
+        raise ValueError('Background width must be broader than smoothing width')
+    variants = []
+    for title, sigma, bg in [('No cleanup',0,0),('Smoothing only',smooth,0),('Background only',0,background),('Both',smooth,background)]:
+        recipe = {**params, skey:sigma, bkey:bg, 'normalize':False}
+        data = preview({**body, 'parameters':recipe, 'contrast':'raw'})
+        variants.append(dict(title=title, **data))
+    return dict(variants=variants,note='Same source region, Z planes, resolution and raw intensity window. Normalization is off in all four variants. Detection settings are held fixed; Otsu thresholds are recomputed for each prepared image. Fewer candidates is not necessarily better; no option is automatically judged best. These are unsaved crop previews, not validated counts.')

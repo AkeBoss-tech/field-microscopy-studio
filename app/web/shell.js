@@ -40,7 +40,7 @@
   setTimeout(()=>{scheduleDraw();syncPills()},360)};
  collapse.onclick=()=>setCollapsed(true);reopen.onclick=()=>setCollapsed(false);
  let stored=null;try{stored=localStorage.getItem('field-sidebar-collapsed')}catch{}
- document.body.classList.toggle('sidebar-collapsed',stored==='1');
+ document.body.classList.toggle('sidebar-collapsed',stored==='1'||(stored===null&&innerWidth<=1150));
  new MutationObserver(()=>reopen.querySelector('.reopen-count').textContent=$('#result-count').textContent||'').observe($('#result-count'),{childList:true,characterData:true,subtree:true});
 
  function syncPills(){movePill(nav);movePill(modes);document.querySelectorAll('.render-modes,.render-dock .segmented').forEach(movePill)}
@@ -59,7 +59,7 @@
   signature=next;
   document.body.dataset.mode=state.mode;
   // Review has its own crosshair Z; projection and 3D views do not use a single plane.
-  depth.classList.toggle('visible',(state.tab==='Explore'&&state.mode==='slice')||state.tab==='Process'||state.tab==='Annotate');
+  const cropPreview=state.tab==='Process'&&expParams().scope==='volume'&&experiment.previews.has(expKey());depth.classList.toggle('visible',(state.tab==='Explore'&&state.mode==='slice')||(state.tab==='Process'&&!cropPreview)||state.tab==='Annotate');
   requestAnimationFrame(syncPills);
  };
 
@@ -126,10 +126,8 @@ showObjectInspector=function(data){
  const decide=[...actions.children].find(b=>/^Review candidate/.test(b.textContent));if(decide){decide.textContent='Decide…';decide.title='Accept, reject or flag this candidate'}
  const fix=[...actions.children].find(b=>/Fix this mask/.test(b.textContent));if(fix)fix.textContent='✎ Fix mask';
  box.querySelector('h3')?.after(actions);
- const more=document.createElement('details');more.className='inspector-more';const summary=document.createElement('summary');summary.textContent='More details';more.append(summary);
- const keep=/^(Volume:|Review status:)/;
- for(const el of [...box.children]){if(el===actions||el.tagName==='H3')continue;if(el.tagName==='P'&&keep.test(el.querySelector('strong')?.textContent||''))continue;more.append(el)}
- if(more.children.length>1)box.append(more);
+ // The inspector owns its visible morphology tiles and expandable details.
+ // Keep this wrapper limited to arranging the shared review/3D actions.
  if(!actions.children.length)actions.remove();
 };
 
@@ -143,52 +141,44 @@ addEventListener('DOMContentLoaded',()=>{
 });
 
 // ---- Process: show the selected algorithm, its full pipeline, and what is running now ----
-const algorithmNames={otsu:'Otsu threshold',watershed:'Distance watershed',sato:'Sato ridge filter',preprocess:'Gaussian & background'};
-const methodGlyphs={otsu:'◉',watershed:'◈',sato:'⌁',preprocess:'◒'};
-function recipeField(prefix){return [...document.querySelectorAll('.experiment-settings [name]')].find(el=>el.name===prefix||el.name.startsWith(prefix+'_')&&!el.closest('label')?.hidden)}
+const algorithmNames={adaptive_regions:'Local Gaussian threshold + signal floor',prominence_watershed:'H-maxima distance watershed',otsu:'Otsu threshold',watershed:'Distance watershed',sato:'Sato ridge filter',preprocess:'Intensity preparation',neurite_otsu:'Otsu + skeleton',neurite_adaptive:'Adaptive + skeleton',neurite_sato:'Sato + skeleton',neurite_frangi:'Frangi + skeleton',neurite_meijering:'Meijering + skeleton'};
+const methodGlyphs={adaptive_regions:'◉',prominence_watershed:'◈',otsu:'◉',watershed:'◈',sato:'⌁',preprocess:'◒',neurite_otsu:'⌁',neurite_adaptive:'⌁',neurite_sato:'⌁',neurite_frangi:'⌁',neurite_meijering:'⌁'};
+function recipeField(prefix){return [...document.querySelectorAll('.experiment-settings [name],.experiment-advanced [name]')].find(el=>el.name===prefix||el.name.startsWith(prefix+'_')&&!el.closest('label')?.hidden)}
 function recipeValue(prefix){const el=recipeField(prefix);if(!el)return null;return el.type==='checkbox'?el.checked:el.value}
 function recipeUnit(prefix){const el=recipeField(prefix),label=el?.closest('label')?.firstChild?.textContent||'';return (label.match(/\(([^)]+)\)/)||[])[1]||''}
 function pipelineSteps(){
  const p=expParams(),method=p.method,on=v=>v!==null&&v!==''&&Number(v)>0;
- const parent=document.querySelector('.experiment-settings [name=parent]'),input=parent?.selectedOptions[0]?.textContent||'Original source';
- const scope=p.scope==='volume'?'all '+state.meta.shape[0]+' Z planes':p.scope==='slice'?'plane '+(state.z+1):'Z projection';
+ const parent=document.querySelector('.experiment-settings [name=parent],.experiment-advanced [name=parent]'),input=parent?.selectedOptions[0]?.textContent||'Original source';
+ const scope=p.scope==='volume'?(p.run_region==='selected'?'selected XY / Z region':'all '+state.meta.shape[0]+' Z planes'):p.scope==='slice'?'plane '+(state.z+1):'maximum Z projection';
  const steps=[['Input',input+' · C'+(state.channel+1)+' · '+p.factor+'× XY · '+scope,true]];
  const sigma=recipeValue('sigma'),background=recipeValue('background'),normalize=recipeValue('normalize');
  steps.push(['Smooth',on(sigma)?'Gaussian σ '+sigma+' '+recipeUnit('sigma'):'Off',on(sigma)]);
  steps.push(['Background',on(background)?'Subtract σ '+background+' '+recipeUnit('background'):'Off',on(background)]);
- if(normalize!==null)steps.push(['Normalize',normalize?'Rescale intensity':'Off',!!normalize]);
- if(method==='preprocess'){steps.push(['Output','Processed intensity · no labels',true]);return steps}
- if(method==='sato')steps.push(['Ridge filter','Sato · '+(p.sato_mode==='slice'?'per XY slice':'3D grid')+' · scales 1–2 px',true]);
- const threshold=recipeValue('threshold');steps.push(['Threshold','Otsu'+(threshold&&Number(threshold)!==1?' × '+threshold:'')+(method==='sato'?' on ridge response':''),true]);
+ steps.push(['Normalize',normalize?'Rescale intensity':'Off',!!normalize]);
+ if(method==='preprocess'){steps.push(['Output','Prepared intensity · no labels',true]);return steps}
+ if(method==='sato'||['neurite_sato','neurite_frangi','neurite_meijering'].includes(method))steps.push(['Enhance',algorithmNames[method]+' · '+(method==='sato'?(p.sato_mode==='slice'?'per XY plane':'3D grid'):(p.neurite_mode==='volume'?'3D filter':'per XY plane')),true]);
+ const threshold=recipeValue('threshold');steps.push(['Threshold',method==='adaptive_regions'?'Local window '+(recipeValue('local_window')||31)+' working px + Otsu floor × '+(recipeValue('local_floor')??.5):method==='neurite_adaptive'?'Local window '+(recipeValue('adaptive_block_size')||31)+' grid px':'Otsu'+(threshold&&Number(threshold)!==1?' × '+threshold:''),true]);
  const minFg=recipeValue('min_size');steps.push(['Drop specks',on(minFg)?'< '+minFg+' '+recipeUnit('min_size'):'Off',on(minFg)]);
+ if(method==='prominence_watershed')steps.push(['Split touching','Peak prominence '+(recipeValue('peak_prominence')||.5)+' '+(expParams().units==='physical'?'µm':'working px'),true]);
  if(method==='watershed'){const d=recipeValue('seed_distance')??recipeValue('distance');steps.push(['Split touching','Seeds ≥ '+(d??'?')+' '+((recipeUnit('seed_distance')||recipeUnit('distance'))||'px')+' apart',true])}
+ if(expIsNeurite(method)){
+  const exclude=recipeValue('neurite_soma_radius'),prune=recipeValue('neurite_min_branch_length');
+  if(on(exclude))steps.push(['Wide signal','Exclude radius ≥ '+exclude+' '+recipeUnit('neurite_soma_radius'),true]);
+  steps.push(['Skeleton','Thin each connected foreground network',true]);
+  if(on(prune))steps.push(['Measure','Ignore terminal paths < '+prune+' '+recipeUnit('neurite_min_branch_length'),true]);
+ }
  const minFinal=recipeValue('min_final');if(minFinal!==null)steps.push(['Final filter',on(minFinal)?'Objects < '+minFinal+' '+recipeUnit('min_final')+' removed':'Off',on(minFinal)]);
- steps.push(['Output',method==='sato'?'Connected ridge networks':'Candidate labels'+(p.scope==='volume'?' in 3D':''),true]);
+ steps.push(['Output',expIsNeurite(method)?'Network lengths & branch measurements':method==='sato'?'Connected ridge regions':'Candidate labels'+(p.scope==='volume'?' in 3D':''),true]);
  return steps;
 }
 function renderAlgorithmOverview(){
- const panel=$('#task-panel');if(state.tab!=='Process'||!panel||panel.hidden||!state.meta)return;
+ const panel=$('#task-panel'),settings=panel?.querySelector('.experiment-settings');if(state.tab!=='Process'||!settings||panel.hidden||!state.meta)return;
  let box=panel.querySelector('.algo-overview');
- if(!box){box=document.createElement('section');box.className='algo-overview';box.setAttribute('aria-label','Algorithm and pipeline');
-  const summary=$('#recipe-summary');(summary&&panel.contains(summary)?summary:panel.querySelector('.exp-form-heading')||panel.firstChild)?.after(box)}
- // The pipeline sits below the Preview / Run actions so those stay in view.
+ if(!box){box=expNode('section','algo-overview');box.setAttribute('aria-label','Running processing jobs');const running=expNode('div','algo-running');running.hidden=true;box.append(running);settings.prepend(box)}
  let pipeline=panel.querySelector('.algo-pipeline-box');
- if(!pipeline){pipeline=document.createElement('section');pipeline.className='algo-pipeline-box';pipeline.setAttribute('aria-label','Processing pipeline');(panel.querySelector('.experiment-actions')||box).after(pipeline)}
- const p=expParams();box.classList.toggle('settled',box.dataset.method===p.method);box.dataset.method=p.method;box.replaceChildren();
- box.append(expNode('p','algo-label','Algorithm'));
- const cards=expNode('div','algo-cards');cards.setAttribute('role','radiogroup');cards.setAttribute('aria-label','Algorithm');
- for(const [key,[title,help,color]] of Object.entries(methodInfo)){
-  const b=expButton('','algo-card '+color+(p.method===key?' active':''),()=>{const select=document.querySelector('.experiment-settings [name=method]');if(!select||select.value===key)return;select.value=key;select.dispatchEvent(new Event('input',{bubbles:true}));select.dispatchEvent(new Event('change',{bubbles:true}));state.recipe={...state.recipe,method:key};expUpdateSummary?.();renderAlgorithmOverview()});
-  b.setAttribute('role','radio');b.setAttribute('aria-checked',String(p.method===key));b.title=help;
-  b.append(expNode('span','algo-glyph',methodGlyphs[key]),expNode('strong','',title),expNode('span','algo-name',algorithmNames[key]));cards.append(b);
- }
- box.append(cards,expNode('p','algo-help',methodInfo[p.method][1]));
- pipeline.classList.toggle('settled',box.classList.contains('settled'));pipeline.replaceChildren();
- const head=expNode('div','algo-pipeline-head');head.append(expNode('p','algo-label','Pipeline'),expButton('⚙ Edit','algo-edit',()=>expOpenSettings()));pipeline.append(head);
- const list=expNode('ol','algo-pipeline');
- pipelineSteps().forEach(([name,value,active],i)=>{const li=expNode('li',active?'':'off');li.style.animationDelay=(i*35)+'ms';li.append(expNode('span','step-dot',String(i+1)),expNode('span','step-name',name),expNode('span','step-value',value));li.title='Edit settings';li.onclick=()=>expOpenSettings();list.append(li)});
- pipeline.append(list);
- const running=expNode('div','algo-running');running.hidden=true;box.prepend(running);refreshRunning();
+ if(!pipeline){pipeline=expNode('details','algo-pipeline-box');pipeline.setAttribute('aria-label','Applied processing pipeline');pipeline.open=!!experiment.showPipeline;pipeline.ontoggle=()=>experiment.showPipeline=pipeline.open;const jobs=settings.querySelector('.process-jobs');if(jobs)jobs.before(pipeline);else settings.append(pipeline)}
+ pipeline.replaceChildren(expNode('summary','','Applied pipeline'));
+ const list=expNode('ol','algo-pipeline');pipelineSteps().forEach(([name,value,active],i)=>{const li=expNode('li',active?'':'off');li.append(expNode('span','step-dot',String(i+1)),expNode('span','step-name',name),expNode('span','step-value',value));list.append(li)});pipeline.append(list);refreshRunning();
 }
 let runningTimer=null;
 async function refreshRunning(){
@@ -206,7 +196,7 @@ async function refreshRunning(){
  document.addEventListener('change',e=>{if(e.target.closest?.('.experiment-settings'))requestAnimationFrame(renderAlgorithmOverview)});
  document.addEventListener('input',e=>{if(e.target.closest?.('.experiment-settings'))requestAnimationFrame(renderAlgorithmOverview)});
  // A run submitted from Process shows up in "Running now" right away.
- document.addEventListener('click',e=>{if(/Run full/.test(e.target.closest?.('button')?.textContent||''))setTimeout(refreshRunning,400)},true)}
+ document.addEventListener('click',e=>{if(/Run (full|selected|current|Z projection|all 5)/.test(e.target.closest?.('button')?.textContent||''))setTimeout(refreshRunning,400)},true)}
 // Results list: friendly algorithm names and the same glyph/colour as the Process cards.
 {const shellCatalog=resultCatalog;resultCatalog=function(){shellCatalog();
  for(const b of document.querySelectorAll('#result-list .result-button[data-result]')){const r=state.runs.find(run=>run.id===b.dataset.result),info=r&&methodInfo[r.method];if(!info)continue;
